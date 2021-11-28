@@ -1,0 +1,85 @@
+# IMPORTANT:
+#
+#   padogrid depends on several system properties, which must be specified
+#   in your hazelcast.xml. If you choose to use your own hazelcast.xml file then
+#   make sure to include all system properties found in this file. The following
+#   system properties are required:
+#
+#   "hazelcast-addon.cluster-name"
+#            Cluster name. Disabled by default.
+#            See below to see how to enable it.
+#   "hazelcast-addon.management-center"
+#            MC URL.
+#   "hazelcast-addon.tcp.port"
+#            TPC port number for the member.
+#   "hazelcast-addon.tcp.members"
+#            A complete list of TCP member addresses.
+#
+
+hazelcast:
+  cluster-name: dev
+  properties:
+    hazelcast.phone.home.enabled: false
+    hazelcast.addon.cluster.expiration.tag: SessionExpirationService
+    hazelcast.addon.cluster.expiration.key.delimiter: _
+    hazelcast.addon.cluster.expiration.session.smkp: mkp_.*,mymkp
+    hazelcast.addon.cluster.expiration.session.smkq: mkq_.*,mymkq
+    hazelcast.addon.cluster.expiration.jmx-use-hazelcast-object-name: true
+  listeners:
+    # SessionExpirationServiceInitializer is invoked during bootstrap to
+    # initialize and start SessionExpirationService.
+    - org.hazelcast.addon.cluster.expiration.SessionExpirationServiceInitializer
+  management-center:
+    scripting-enabled: true
+  user-code-deployment:
+    enabled: true
+    class-cache-mode: ETERNAL
+    provider-mode: LOCAL_AND_CACHED_CLASSES
+  lite-member:
+    enabled: false
+
+  network:
+    port:
+      auto-increment: false
+      port: ${hazelcast-addon.tcp.port}
+    outbound-ports:
+      - 0
+    rest-api:
+      enabled: true
+      endpoint-groups:
+        CLUSTER_READ:
+          enabled: false
+        CLUSTER_WRITE:
+          enabled: false
+        HEALTH_CHECK:
+          enabled: true
+        HOT_RESTART:
+          enabled: false
+        WAN:
+          enabled: false
+        DATA:
+          enabled: false
+    join:
+      multicast:
+        enabled: false
+      tcp-ip:
+        enabled: true
+        members: ${hazelcast-addon.tcp.members}
+  map:
+    smkp:
+      max-idle-seconds: 5
+      entry-listeners:
+      - class-name: org.hazelcast.addon.cluster.expiration.SessionExpirationListener
+        include-value: false
+    smkq:
+      max-idle-seconds: 10
+      entry-listeners:
+      - class-name: org.hazelcast.addon.cluster.expiration.SessionExpirationListener
+        include-value: false
+
+  # padogrid serialization
+  serialization:
+    portable-version: 1
+    portable-factories:
+      - factory-id: 10000
+        class-name: org.hazelcast.addon.hql.impl.PortableFactoryImpl

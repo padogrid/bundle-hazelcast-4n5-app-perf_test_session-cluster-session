@@ -19,17 +19,16 @@
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>k8s</directory>
-			<outputDirectory>k8s</outputDirectory>
+			<directory>clusters</directory>
+			<outputDirectory>clusters</outputDirectory>
 			<includes>
 				<include>**</include>
 			</includes>
 		</fileSet>
 		
-		<!-- @template: Set executable permissions to all scripts here for each fileSet. -->
 		<!-- Executable permissions -->
 		<fileSet>
-			<directory>apps/myapp/bin_sh/</directory>
+			<directory>apps/perf_test_session/bin_sh/</directory>
 			<outputDirectory>apps/myapp/bin_sh/</outputDirectory>
 			<includes>
 				<include>**</include>
@@ -38,8 +37,8 @@
 			<directoryMode>0755</directoryMode>
 		</fileSet>
 		<fileSet>
-			<directory>k8s/mykube/bin_sh/</directory>
-			<outputDirectory>k8s/mykube/bin_sh/</outputDirectory>
+            <directory>clusters/session/bin_sh/</directory>
+			<outputDirectory>clusters/session/bin_sh/</outputDirectory>
 			<includes>
 				<include>**</include>
 			</includes>

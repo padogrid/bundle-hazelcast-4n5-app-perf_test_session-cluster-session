@@ -11,7 +11,7 @@
 # hazelast=3.12,4.1.1,4.2
 #
 
-hazelcast=4
+hazelcast=4,5
 #hazelcast-enterprise=
 #jet=
 #jet-enterprise=

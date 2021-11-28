@@ -7,12 +7,12 @@
 
 	<groupId>padogrid.addon</groupId>
 	<!-- @template: Enter your bundle name here -->
-	<artifactId>bundle-hazelcast-template</artifactId>
+    <artifactId>bundle-hazelcast-4n5-app-perf_test_session-cluster-session</artifactId>
 	<packaging>pom</packaging>
         <name>${project.artifactId}</name>
 	<version>1.0.0</version>
 	<!-- @template: Enter your bundle description -->
-	<description>Bundle template</description>
+	<description>Session expiration plugin</description>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

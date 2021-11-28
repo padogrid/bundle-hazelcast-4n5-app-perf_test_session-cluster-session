@@ -1,97 +1,137 @@
-# Hazelcast Bundle Template
+# Session Expiration Management Plugin
 
-This bundle serves as a template for creating a new Hazelcast onlne bundle.
+This bundle provides a plugin that expires session objects in a given map and their relevant entries in other Hazelcast maps.
 
 ## Installing Bundle
 
 ```bash
-install_bundle -download bundle-hazelcast-template
+install_bundle -download bundle-hazelcast-4n5-app-perf_test_session-cluster-session
 ```
 
 ## Use Case
 
-If you are creating a new online bundle, then you can use this template to create your bundle repo. It includes all the required files with marked annotations for you to quickly start developing a new online bundle. Please follow the steps shown below.
+You are storing user session objects in multiple Hazelcast maps. A single user session touches multiple maps and when the user is idle for some time, you want to end the session and remove all the entries that belong to that particular session from all the maps. To achieve this, you decide to use the session ID (typically UUID) as a prefix to all the keys that you are storing in the maps. You also configure the maps with `max-idle-seconds`, but since each map times out individually, the session entries would expire undeterministically. For example, some entries may expire earlier than others if there were no activities. But you want to be able deterministcally expire all the session entries only when the session times out.
 
-## 1. Create Repo
 
-Select **Use this template** button in the upper right coner to create your repo. Make sure to follow the bundle naming conventions described in the following link.
+## `SessionExpirationService` Plugin
 
-## 2. Checkout Repo in Workspace
+The provided `SessionExpirationService` plugin solves this use case by adding an `EntryExpiredListener` to the primary map that gets updated for all session activities. If an entry expires in the primary map, then the listener expires (or removes) that entry's session relevant entries from all other maps. To lighten the load on the cluster, `SessionExpirationService` spawns a thread with a blocking queue that takes on removal tasks.
 
-```bash
-# PadoGrid 0.9.7+
-install_bundle -checkout <bundle-repo-name>
+## Installation Steps
 
-# PadoGrid 0.9.6 and older
-install_bundle -download -workspace <bundle-repo-name>
-
-# Switch into the checked out bundle workspace
-switch_workspace <bundle-repo-name>
-```
-
-## 3. Update Files
-
-Update the files came with the template repo.
-
-- `pom.xml`
-- `assembly-descriptor.xml`
-- `.gitignore`
-- `README_HEADER.md` (Optional)
-- `README.md` (This file)
-- `README.TEMPLATE` (Remove it when done. See instructions below.)
-- `required_products.txt`
-
-### 3.1. pom.xml
-
-The `pom.xml` file contains instructions annocated with **@template**. Search **@template** and add your bundle specifics there.
-
-### 3.2 assembly-descriptor.xml
-
-This file creates a tarball that will be deployed when the user executes the `install_bundle -download` command. Search **@template** and add your bundle specifics there.
-
-### 3.3 .gitignore
-
-The `.gitignore` file lists workspace specific files to be excluded from getting checked in. Edit `.gitignore` and add new exludes or remove existing excludes.
+Run the `session` cluster's `build_app` script which sets the correct Hazelcast XML schema version in the `etc/hazelcast.xml` file. This step is not necessary if your workspace is running Hazelcast 4.x.
 
 ```bash
-vi .gitignore
+switch_cluster session/bin_sh
+./build_app
 ```
 
-Make sure to comment out your workspace directories (components) so that they can be included by `git`.
+## Startup Sequence
 
-```console
-...
-# PadoGrid workspace directories
-apps
-clusters
-docker
-k8s
-pods
-...
-```
-
-## 3.4. README_HEADER.md
-
-Enter a short description of your bundle in the `README_HEADER.md` file. This file content is displayed when you execute the `show_bundle -header` command. **Note that this file is optional.** If it does not exist, then the first paragraph of the `README.md` file is used instead.
-
-## 3.5. READEME.md (this file)
-
-Replace `README.md` with the README_TEMPLATE.md file. Make sure to remove `README_TEMPLATE.md` after you have replaced `READEME.md` with it.
+1. Start the `session` cluster.
 
 ```bash
-cp README_TEMPLATE.md README.md
-git rm README_TEMPLATE.md
+switch_cluster session
+
+# Add two (2) or more members in the cluster
+add_member; add_member
+
+# Start the session cluster and management center
+start_cluster -all
 ```
 
-Update the `READEME.md` file by following the instructions in that file.
+2. Ingest data
 
-## 3.6. required_products.txt
+```bash
+cd_app perf_test_session/bin_sh
 
-The `required_products.txt` file must include a list of required products and their versions. Its format is described in the following link.
+# Ingest data into smkp, mkp_*, mymkp maps.
+./test_group -run -prop ../etc/group-mkp-put.properties
 
-[Relaxed Bundle Naming Conventions](https://github.com/padogrid/padogrid/wiki/User-Bundle-Repos#relaxed-conventions)
+# Ingest data into smkq, mkq_*, mymkq maps.
+./test_group -run -prop ../etc/group-mkq-put.properties
+```
 
-## 4. Develop and Test Bundle
+3. Monitor the maps from the management center.
 
-You can freely make changes and test the bundle in the workspace. When you are ready to check in, you simply commit the changes using the `git commit` command. For new files, you will need to select only the ones that you want to check in using the `git status -u` and `git diff` commands. For those files that you do not want to check in, you can list them in the `.gitignore` file so that they do not get checked in accidentally.
+URL: http://localhost:8080/hazelcast-mancenter
 
+## Configuring `SessionExpirationService`
+
+There are three (3) distinctive settings that must be included in the Hazelcast configuration file as follows.
+
+1. Properties for defining the primary map, relevant maps, and session key delimiter.
+2. `org.hazelcast.addon.cluster.expiration.SessionExpirationServiceInitializer` for initializing and starting the `SessionExpirationService` plugin.
+3. `org.hazelcast.addon.cluster.expiration.SessionExpirationListener` for each primary map configured with `max-idle-seconds` or `time-to-live-seconds`.
+
+| Property | Description | Default |
+| -------- | ----------- | ------- |
+| hazelcast.addon.cluster.expiration.tag | Tag used as a prefix to each log message and a part of JMX object name. | SessionExpirationService |
+| hazelcast.addon.cluster.expiration.jmx-use-hazelcast-object-name | If true, then the standard Hazelcast JMX object name is registered for the session expiration service. Hazelcast metrics are registered with the header “com.hazelcast” and “type=Metrics”. If false or unspecified, then object name is registered with the header “org.hazelcast.addon” and “type=SessionExpirationService”. | false |
+| hazelcast.addon.cluster.expiration.session. | Property prefix for specifying a session map and the relevant maps. | N/A |
+| hazelcast.addon.cluster.expiration.key.delimiter | Delimiter that separates the session ID and the remainder. | _ (underscore) |
+
+Use the following configuration files as references.
+
+- [hazelcast.yaml](clusters/session/hazelcast.yaml)
+
+```yaml
+hazelcast:
+  ...
+  properties:
+    hazelcast.phone.home.enabled: false
+    hazelcast.addon.cluster.expiration.tag: SessionExpirationService
+    hazelcast.addon.cluster.expiration.key.delimiter: _
+    hazelcast.addon.cluster.expiration.session.smkp: mkp_.*,mymkp
+    hazelcast.addon.cluster.expiration.session.smkq: mkq_.*,mymkq
+    hazelcast.addon.cluster.expiration.jmx-use-hazelcast-object-name: true
+  listeners:
+    # SessionExpirationServiceInitializer is invoked during bootstrap to
+    # initialize and start SessionExpirationService.
+    - org.hazelcast.addon.cluster.expiration.SessionExpirationServiceInitializer
+  ...
+  map:
+    smkp:
+      max-idle-seconds: 5
+      entry-listeners:
+      - class-name: org.hazelcast.addon.cluster.expiration.SessionExpirationListener
+        include-value: false
+    smkq:
+      max-idle-seconds: 10
+      entry-listeners:
+      - class-name: org.hazelcast.addon.cluster.expiration.SessionExpirationListener
+        include-value: false
+```
+
+- [hazelcast.xml](clusters/session/hazelcast.xml)
+
+```xml
+<hazelcast ...>
+	<properties>
+		<property name="hazelcast.phone.home.enabled">false</property>
+		<property name="hazelcast.addon.cluster.expiration.tag">SessionExpirationService</property>
+		<property name="hazelcast.addon.cluster.expiration.key.delimiter">_</property>
+		<property name="hazelcast.addon.cluster.expiration.session.smkp">mkp_.*,mymkp</property>
+		<property name="hazelcast.addon.cluster.expiration.session.smkq">mkq_.*,mymkq</property>
+		<property name="hazelcast.addon.cluster.expiration.jmx-use-hazelcast-object-name">true</property>
+	</properties>   
+    <listeners>
+        <listener>
+		org.hazelcast.addon.cluster.expiration.SessionExpirationServiceInitializer
+		</listener>
+    </listeners>
+    ...
+    <map name="smkp">
+		<max-idle-seconds>5</max-idle-seconds>
+		<entry-listeners>
+			<entry-listener>org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+		</entry-listeners>
+	</map>
+	<map name="smkq">
+		<max-idle-seconds>10</max-idle-seconds>
+		<entry-listeners>
+			<entry-listener >org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+		</entry-listeners>
+	</map>
+</hazelcast>
+```

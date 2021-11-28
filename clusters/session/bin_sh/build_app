@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+SCRIPT_DIR="$(cd -P -- "$(dirname -- "$0")" && pwd -P)"
+. $SCRIPT_DIR/.addonenv.sh
+
+EXECUTABLE="`basename $0`"
+
+if [ "$HELP" == "true" ]; then
+cat <<EOF
+
+NAME
+   $EXECUTABLE - Build session cluster environment
+
+SYNOPSIS
+   $EXECUTABLE [-?]
+
+DESCRIPTION
+   Builds session cluster environment by copying the proper version of the configuration file.
+
+DEFAULT
+   ./$EXECUTABLE
+
+EOF
+   exit
+fi
+
+# Change schema version to 5 if Hazelcast major version is 5
+if [ $HAZELCAST_MAJOR_VERSION_NUMBER -eq 5 ]; then
+  sed -i${__SED_BACKUP} 's/hazelcast-config-4.0.xsd/hazelcast-config-5.0.xsd/' $ETC_DIR/hazelcast.xml
+  echo "+ etc/hazelcast.xml schema version changed from 4.0 to 5.0."
+fi
+
+echo "Build complete."
