@@ -14,7 +14,8 @@ SYNOPSIS
    $EXECUTABLE [-?]
 
 DESCRIPTION
-   Builds session cluster environment by copying the proper version of the configuration file.
+   Builds session cluster environment by compling the plugin source code and setting the
+   proper schema version of the configuration file.
 
 DEFAULT
    ./$EXECUTABLE
@@ -22,6 +23,11 @@ DEFAULT
 EOF
    exit
 fi
+
+# Compile
+pushd $CLUSTER_DIR > /dev/null 2>&1
+mvn package
+popd > /dev/null 2>&1
 
 # Change schema version to 5 if Hazelcast major version is 5
 if [ $HAZELCAST_MAJOR_VERSION_NUMBER -eq 5 ]; then
