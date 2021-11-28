@@ -40,7 +40,7 @@ add_member; add_member
 start_cluster -all
 ```
 
-2. Ingest data
+2. Ingest data. The **mkp** maps are configured to timeout in 5 seconds and the **mkq** maps are configured to timeout in 10 seconds. See [hazelcast.yaml](clusters/session/etc/hazelcast.yaml).
 
 ```bash
 cd_app perf_test_session/bin_sh
@@ -73,7 +73,7 @@ There are three (3) distinctive settings that must be included in the Hazelcast 
 
 Use the following configuration files as references.
 
-- [hazelcast.yaml](clusters/session/hazelcast.yaml)
+- [hazelcast.yaml](clusters/session/etc/hazelcast.yaml)
 
 ```yaml
 hazelcast:
@@ -103,7 +103,7 @@ hazelcast:
         include-value: false
 ```
 
-- [hazelcast.xml](clusters/session/hazelcast.xml)
+- [hazelcast.xml](clusters/session/etc/hazelcast.xml)
 
 ```xml
 <hazelcast ...>
