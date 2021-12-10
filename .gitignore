@@ -19,6 +19,9 @@ buildNumber.properties
 .project
 .classpath
 
+# macOS
+.DS_Store
+
 # PadoGrid workspace
 /.addonenv.sh
 /initenv.sh
@@ -36,6 +39,7 @@ pods
 .workspace
 .cluster
 run
+workspace.code-workspace
 
 # Bundle specifics
 archive
