@@ -22,11 +22,13 @@ import com.hazelcast.core.LifecycleListener;
  * hazelcast.addon.cluster.expiration.session.
  * </pre>
  * 
- * For example, the following property expects the <b>smkp</b> map to have an
- * expiration policy configured and expires (or removes) all entries that have
- * the same session key prefix in the <b>mkp_.*</b> and <b>mymkp</b> maps. Map
- * names must be comma separated and regular expression is supported, e.g.,
- * <b>mkp_.*</b> indicates any map names that begin with <i>mkp_</i>.
+ * For example, the following property expects the primary map, <b>smkp</b>, to
+ * have an expiration policy configured and expires (or removes) all entries
+ * that have the same session key prefix in the relevant maps, <b>mkp_.*</b> and
+ * <b>mymkp</b>. The relevant map names must be comma separated and regular
+ * expression is supported, e.g., <b>mkp_.*</b> indicates any map names that
+ * begin with <i>mkp_</i>.
+ * <p>
  * 
  * <pre>
  * &lt;properties&gt;
@@ -34,7 +36,7 @@ import com.hazelcast.core.LifecycleListener;
  *    &lt;property name="hazelcast.addon.cluster.expiration.jmx-use-hazelcast-object-name"&gt;true&lt;/property&gt;
  *    &lt;property name="hazelcast.addon.cluster.expiration.session.smkp"&gt;mkp_.*,mymkp&lt;/property&gt;
  * &lt;properties&gt;
- *    &lt;property name="hazelcast.addon.cluster.expiration.key.delimiter"&gt;_&lt;/property&gt;
+ *    &lt;property name="hazelcast.addon.cluster.expiration.key.delimiter"&gt;@&lt;/property&gt;
  * 
  * &lt;listeners&gt;
  *    &lt;listener&gt;
@@ -50,7 +52,22 @@ import com.hazelcast.core.LifecycleListener;
  * &lt;/map&gt;
  * </pre>
  * 
- * The following system properties are available for configuring {@linkplain SessionExpirationService}.
+ * In addition to regular expressions, the annotation, %TAG%, can be used to
+ * identify string patterns.
+ * 
+ * <pre>
+ * hazelcast.addon.cluster.expiration.session.smki_%TAG%: mki1_%TAG%,mki2_%TAG%
+ * </pre>
+ * 
+ * For example, the above property matches the following maps.
+ * 
+ * <pre>
+ * smki_EN01: mki1_EN01,mki2_EN01
+ * smki_abc_EN02: mki1_xyz_EN02,hello_EN02
+ * </pre>
+ * 
+ * The following system properties are available for configuring
+ * {@linkplain SessionExpirationService}.
  * <p>
  * <table border="1">
  * <tr>
@@ -59,15 +76,16 @@ import com.hazelcast.core.LifecycleListener;
  * <th style="text-align:left">Default</th> </tr
  * <tr>
  * <td>hazelcast.addon.cluster.expiration.tag</td>
- * <td>Tag used as a prefix to each log message and a part of JMX object name.</td>
+ * <td>Tag used as a prefix to each log message and a part of JMX object
+ * name.</td>
  * <td>SessionExpirationService</td>
  * </tr>
  * <tr>
  * <td>hazelcast.addon.cluster.expiration.jmx-use-hazelcast-object-name</td>
  * <td>If true, then the standard Hazelcast JMX object name is registered for
- * the session expiration service. Hazelcast metrics are registered with the header
- * “com.hazelcast” and “type=Metrics”. If false or unspecified, then object name
- * is registered with the header “org.hazelcast.addon” and
+ * the session expiration service. Hazelcast metrics are registered with the
+ * header “com.hazelcast” and “type=Metrics”. If false or unspecified, then
+ * object name is registered with the header “org.hazelcast.addon” and
  * “type=SessionExpirationService”.</td>
  * <td>false</td>
  * </tr>
@@ -78,11 +96,10 @@ import com.hazelcast.core.LifecycleListener;
  * </tr>
  * <tr>
  * <td>hazelcast.addon.cluster.expiration.key.delimiter</td>
- * <td>Delimiter that separates the session ID and the remainder. </td>
- * <td>_ (underscore)</td>
+ * <td>Delimiter separating the session ID from the key value. The last token is the session ID.</td>
+ * <td>@</td>
  * </tr>
  * </table>
- * 
  * @author dpark
  *
  */

@@ -10,7 +10,8 @@ public final class SessionExpirationServiceConfiguration {
 	public final static String PROPERTY_SESSION_PREFIX = "hazelcast.addon.cluster.expiration.session.";
 
 	/**
-	 * Delimiter separating the session ID (UUID) and the remainder.
+	 * Delimiter separating the session ID from the key value. The last token
+	 * is the session ID.
 	 */
 	public final static String PROPERTY_KEY_DELIMITER = "hazelcast.addon.cluster.expiration.key.delimiter";
 
