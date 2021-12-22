@@ -25,8 +25,27 @@ public class MapUtil {
 	private static int[] partitionIdsToKeys;
 
 	/**
+	 * Removes all keys found by applying the specified predicate on the local map
+	 * key set.
+	 * 
+	 * @param map       Map from which the predicate is to be applied.
+	 * @param predicate Predicate to execute on the local keys. To execute it on
+	 *                  values, use
+	 *                  {@link #removeMemberAll(HazelcastInstance, IMap, Predicate)}.
+	 */
+	public static void removeMemberAllKeySet(IMap map, Predicate predicate) {
+		Set keySet = map.localKeySet(predicate);
+		for (Object key : keySet) {
+			map.remove(key);
+		}
+	}
+
+	/**
 	 * Removes all entries in the local member partitions that match the specified
-	 * predicate
+	 * predicate. This is an expensive operation as executes the predicate on each
+	 * primary partition. If the predicate is for keys, then use
+	 * {@link #removeMemberAllKeySet(IMap, Predicate)} instead for better
+	 * performance.
 	 * 
 	 * @param hz        HazelcastInstance
 	 * @param map       Map from which the predicate is to be applied.
@@ -38,7 +57,6 @@ public class MapUtil {
 		for (Partition partition : localOwnerPartitions) {
 			PartitionPredicate<?, ?> partitionPredicate = Predicates
 					.partitionPredicate(partitionIdsToKeys[partition.getPartitionId()], predicate);
-
 			map.removeAll(partitionPredicate);
 		}
 	}
@@ -52,17 +70,11 @@ public class MapUtil {
 	 * @param predicate Predicate to execute.
 	 * @return
 	 */
-	public static Collection queryMemberKeySet(HazelcastInstance hz, IMap map, Predicate predicate) {
-		List results = new ArrayList();
-		Collection<Partition> localOwnerPartitions = getLocalOwnerPartitions(hz);
-		int[] partitionIdsToKeys = getParitionIdsToKeys(hz);
-		for (Partition partition : localOwnerPartitions) {
-			PartitionPredicate<?, ?> partitionPredicate = Predicates
-					.partitionPredicate(partitionIdsToKeys[partition.getPartitionId()], predicate);
-			Collection col = map.keySet(partitionPredicate);
-			results.addAll(col);
+	public static Collection queryMemberKeySet(IMap map, Predicate predicate) {
+		if (map == null) {
+			return null;
 		}
-		return results;
+		return map.localKeySet(predicate);
 	}
 
 	/**
@@ -190,5 +202,14 @@ public class MapUtil {
 			}
 		}
 		return partitionIdsToKeys;
+	}
+
+	/**
+	 * Resets partitionIdsToKeys so that it must be recreated when next time it is
+	 * invoked. This method must be invoked whenever partition rebalancing
+	 * completes.
+	 */
+	public static synchronized void resetPartionIdsToKeys() {
+		partitionIdsToKeys = null;
 	}
 }

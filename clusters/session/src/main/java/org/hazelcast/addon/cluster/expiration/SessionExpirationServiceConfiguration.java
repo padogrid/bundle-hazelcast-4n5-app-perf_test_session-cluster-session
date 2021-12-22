@@ -14,7 +14,9 @@ public final class SessionExpirationServiceConfiguration {
 	 */
 	public final static String PROPERTY_KEY_DELIMITER = "hazelcast.addon.cluster.expiration.key.delimiter";
 
-	public final static String DEFAULT_KEY_DELIMTER = "_";
+	public final static String DEFAULT_KEY_DELIMTER = "@";
 	
 	public final static String JMX_USE_HAZELCAST_OBJECT_NAME = "hazelcast.addon.cluster.expiration.jmx-use-hazelcast-object-name";
+	
+	public final static String NAME_TAG = "%TAG%";
 }

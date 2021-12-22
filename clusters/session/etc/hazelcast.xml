@@ -10,25 +10,14 @@
 	the specific language governing permissions and ~ limitations under the License. -->
 
 <!--******************************************************************************* 
-
-IMPORTANT:
-
-   padogrid depends on several system properties, which must be specified
-   in your hazelcast.xml. If you choose to use your own hazelcast.xml file then
-   make sure to include all system properties found in this file. The following
-   system properties are required: 
-   
-		"hazelcast-addon.cluster-name"
-		         Cluster name. Disabled by default. Hard coded: "dev".
-		         See below to see how to enable it. 
-		"hazelcast-addon.management-center" 
-		         MC URL.
-		"hazelcast-addon.tcp.port"
-		         TPC port number for the member.
-		"hazelcast-addon.tcp.members"
-		         A complete list of TCP member addresses.
-		
-******************************************************************************* -->
+	IMPORTANT: padogrid depends on several system properties, which must be specified 
+	in your hazelcast.xml. If you choose to use your own hazelcast.xml file then 
+	make sure to include all system properties found in this file. The following 
+	system properties are required: "hazelcast-addon.cluster-name" Cluster name. 
+	Disabled by default. Hard coded: "dev". See below to see how to enable it. 
+	"hazelcast-addon.management-center" MC URL. "hazelcast-addon.tcp.port" TPC 
+	port number for the member. "hazelcast-addon.tcp.members" A complete list 
+	of TCP member addresses. ******************************************************************************* -->
 
 <hazelcast xmlns="http://www.hazelcast.com/schema/config"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -38,36 +27,82 @@ IMPORTANT:
 	<properties>
 		<property name="hazelcast.phone.home.enabled">false</property>
 		<property name="hazelcast.addon.cluster.expiration.tag">SessionExpirationService</property>
-		<property name="hazelcast.addon.cluster.expiration.key.delimiter">_</property>
-		<property name="hazelcast.addon.cluster.expiration.session.smkp">mkp_.*,mymkp</property>
-		<property name="hazelcast.addon.cluster.expiration.session.smkq">mkq_.*,mymkq</property>
-		<property name="hazelcast.addon.cluster.expiration.jmx-use-hazelcast-object-name">true</property>
+		<property
+			name="hazelcast.addon.cluster.expiration.jmx-use-hazelcast-object-name">true</property>
+		<property
+			name="hazelcast.addon.cluster.expiration.key.delimiter">@</property>
+
+		<!-- INTERFACE expects key classes to implement the ISessionId interface. -->
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smki_%TAG%">mki1_%TAG%,mki2_%TAG%</property>
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smki_%TAG%.key.type">INTERFACE</property>
+
+		<!-- OBJECT expects key classes with the specified property (getter method). -->
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smko_%TAG%">mko1_%TAG%,mko2_%TAG%</property>
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smko_%TAG%.key.type">OBJECT</property>
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smko_%TAG%.key.property">sessionId</property>
+
+		<!-- CUSTOM expects a predicate class that implements the ISessionIdPredicate 
+			interface. -->
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smkc_%TAG%">mkc1_%TAG%,mkc2_%TAG%</property>
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smkc_%TAG%.key.type">CUSTOM</property>
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smkc_%TAG%.key.predicate">org.hazelcast.addon.expiration.test.CustomPredicate</property>
+
+		<!-- PARTITION_AWARE expects key classes to implement the PartitionAware 
+			interface. It uses PartitionAware.getPartitionKey() as the session ID. -->
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smkp_%TAG%">mkp1_%TAG%,mkp2_%TAG%</property>
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smkp_%TAG%.key.type">PARTITION_AWARE</property>
+
+		<!-- STRING uses string values of key objects, i.e. toString(). It applies 
+			the delimiter to extract the last token in the string value as the session 
+			ID. -->
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smks_%TAG%">mks1_%TAG%,mks2_%TAG%</property>
+		<property
+			name="hazelcast.addon.cluster.expiration.session.smks_%TAG%.key.type">STRING</property>
+
+		<!-- OBJECT -->
+		<property
+			name="hazelcast.addon.cluster.expiration.session.mkp_session_web_session_fi_session_id_mapping_%TAG%">mkp_session_fi_session_data_%TAG%,mkp_session_application_data_%TAG%</property>
+		<property
+			name="hazelcast.addon.cluster.expiration.session.mkp_session_web_session_fi_session_id_mapping_%TAG%.key.type">OBJECT</property>
+		<property
+			name="hazelcast.addon.cluster.expiration.session.mkp_session_web_session_fi_session_id_mapping_%TAG%.key.property">sessionId</property>
+
 	</properties>
 
 	<cluster-name>dev</cluster-name>
 	<!-- To use the workspace cluster name, remove the above line and uncomment 
-	the following line. -->
+		the following line. -->
 	<!-- <cluster-name>${hazelcast-addon.cluster-name}</cluster-name> -->
 
-    <management-center scripting-enabled="true"/>
+	<management-center scripting-enabled="true" />
 
-    <listeners>
-        <!-- org.hazelcast.addon.cluster.expiration.SessionExpirationServiceInitializer
-         is invoked during bootstrap to initialize SessionExpirationService.
-         -->
-        <listener>
-		org.hazelcast.addon.cluster.expiration.SessionExpirationServiceInitializer
+	<listeners>
+		<!-- org.hazelcast.addon.cluster.expiration.SessionExpirationServiceInitializer 
+			is invoked during bootstrap to initialize SessionExpirationService. -->
+		<listener>
+			org.hazelcast.addon.cluster.expiration.SessionExpirationServiceInitializer
 		</listener>
-    </listeners>
-    
+	</listeners>
+
 	<user-code-deployment enabled="true">
 		<class-cache-mode>ETERNAL</class-cache-mode>
 		<provider-mode>LOCAL_AND_CACHED_CLASSES</provider-mode>
 	</user-code-deployment>
 
 	<network>
-		<!-- padogrid explicitly assigns the TCP port numbers in order to 
-			launch multiple clusters on the same machine. -->
+		<!-- padogrid explicitly assigns the TCP port numbers in order to launch 
+			multiple clusters on the same machine. -->
 		<port auto-increment="false">${hazelcast-addon.tcp.port}</port>
 		<outbound-ports>
 			<!-- Allowed port range when connecting to other nodes. 0 or * means use 
@@ -98,27 +133,79 @@ IMPORTANT:
 		<queue-capacity>0</queue-capacity>
 	</executor-service>
 
-	<map name="smkp">
+	<!-- INTERFACE -->
+	<map name="smki_*">
 		<max-idle-seconds>5</max-idle-seconds>
 		<entry-listeners>
-			<entry-listener>org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
-		</entry-listeners>
-	</map>
-	
-	<map name="smkq">
-		<max-idle-seconds>10</max-idle-seconds>
-		<entry-listeners>
-			<entry-listener >org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
 		</entry-listeners>
 	</map>
 
-	<!-- padogrid serialization -->
-	<serialization>
-		<portable-version>1</portable-version>
-		<portable-factories>
-			<portable-factory factory-id="10000">
-			org.hazelcast.addon.hql.impl.PortableFactoryImpl
-			</portable-factory>
-		</portable-factories>
-	</serialization>
+	<!-- OBJECT -->
+	<map name="smko_*">
+		<max-idle-seconds>5</max-idle-seconds>
+		<entry-listeners>
+			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+		</entry-listeners>
+	</map>
+
+	<!-- CUSTOM -->
+	<map name="smkc_*">
+		<max-idle-seconds>5</max-idle-seconds>
+		<entry-listeners>
+			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+		</entry-listeners>
+	</map>
+
+	<!-- PARTITION_AWARE -->
+	<map name="smkp_*">
+		<max-idle-seconds>5</max-idle-seconds>
+		<entry-listeners>
+			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+		</entry-listeners>
+		<partition-strategy>
+			com.hazelcast.partition.strategy.StringAndPartitionAwarePartitioningStrategy
+		</partition-strategy>
+	</map>
+
+	<!-- STRING -->
+	<map name="smks_*">
+		<max-idle-seconds>5</max-idle-seconds>
+		<entry-listeners>
+			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+		</entry-listeners>
+		<partition-strategy>
+			com.hazelcast.partition.strategy.StringAndPartitionAwarePartitioningStrategy
+		</partition-strategy>
+	</map>
+
+	<!-- OBJECT -->
+	<map name="mkp_session_web_session_fi_session_id_mapping_*">
+		<max-idle-seconds>5</max-idle-seconds>
+		<entry-listeners>
+			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+		</entry-listeners>
+	</map>
+
+	<!-- Index relevant maps for better performance -->
+	<map name="mkp_session_fi_session_data_*">
+		<indexes>
+			<index type="HASH">
+				<attributes>
+					<attribute>__key.sessionId</attribute>
+				</attributes>
+			</index>
+		</indexes>
+	</map>
+
+	<!-- Index relevant maps for better performance -->
+	<map name="mkp_session_application_data_*">
+		<indexes>
+			<index type="HASH">
+				<attributes>
+					<attribute>__key.sessionId</attribute>
+				</attributes>
+			</index>
+		</indexes>
+	</map>
 </hazelcast>

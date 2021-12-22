@@ -5,17 +5,16 @@ import com.hazelcast.map.listener.EntryExpiredListener;
 
 /**
  * {@linkplain SessionExpirationListener} traps the expiration events and
- * invokes {@linkplain SessionExpirationService#expire(String, String)} to
+ * invokes {@linkplain SessionExpirationService#expire(String, Object)} to
  * expire all the session relevant entries from the configured maps.
  * 
  * @author dpark
  *
  */
-public class SessionExpirationListener implements EntryExpiredListener<String, Object> {
+public class SessionExpirationListener implements EntryExpiredListener<Object, Object> {
 
 	@Override
-	public void entryExpired(EntryEvent<String, Object> event) {
-		SessionExpirationService.getExpirationService().expire(event.getName(), event.getKey());
+	public void entryExpired(EntryEvent<Object, Object> event) {
+		SessionExpirationService.getExpirationService().expire(event.getName() /* map name */, event.getKey());
 	}
-
 }
