@@ -12,6 +12,7 @@ install_bundle -download bundle-hazelcast-4n5-app-perf_test_session-cluster-sess
 
 You are storing user session objects in multiple Hazelcast maps. A single user session touches one or more maps and when the user is idle for some time, you want to end the session and remove all the entries that belong to that particular session from all the relevant maps. To achieve this, you decide to embed the session ID (typically UUID) as a part of all the keys that you are storing in the maps. You also configure the maps with `max-idle-seconds`, but since each map times out individually, the session entries would expire undeterministically, i.e., some entries may expire earlier than others if there were no activities. Your task is to deterministcally expire all the entries from the relevant maps at the same time when the session times out.
 
+![Session Flow](images/session.jpg)
 
 ## `SessionExpirationService` Plugin
 
