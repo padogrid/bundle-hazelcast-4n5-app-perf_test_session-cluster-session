@@ -10,7 +10,7 @@ install_bundle -download bundle-hazelcast-4n5-app-perf_test_session-cluster-sess
 
 ## Use Case
 
-You are storing user session objects in multiple Hazelcast maps. A single user session touches one or more maps and when the user is idle for some time, you want to end the session and remove all the entries that belong to that particular session from all the relevant maps. To achieve this, you decide to use the session ID (typically UUID) as a prefix to all the keys that you are storing in the maps. You also configure the maps with `max-idle-seconds`, but since each map times out individually, the session entries would expire undeterministically, i.e., some entries may expire earlier than others if there were no activities. Your task is to deterministcally expire all the entries from the relevant maps at the same time when the session times out.
+You are storing user session objects in multiple Hazelcast maps. A single user session touches one or more maps and when the user is idle for some time, you want to end the session and remove all the entries that belong to that particular session from all the relevant maps. To achieve this, you decide to embed the session ID (typically UUID) as a part of all the keys that you are storing in the maps. You also configure the maps with `max-idle-seconds`, but since each map times out individually, the session entries would expire undeterministically, i.e., some entries may expire earlier than others if there were no activities. Your task is to deterministcally expire all the entries from the relevant maps at the same time when the session times out.
 
 
 ## `SessionExpirationService` Plugin
@@ -109,7 +109,7 @@ There are three (3) distinctive settings that must be included in the Hazelcast 
 | hazelcast.addon.cluster.expiration.key.delimiter | Delimiter that separates key string and the sessionID. The sessionID is always at the tail end of the string value. | @ |
 | hazelcast.addon.cluster.expiration.session. | Property prefix for specifying a session map and the relevant maps. | N/A |
 | hazelcast.addon.cluster.expiration.session.foo%TAG%yong | Primary map name that begins with "foo" and ends with "yong" with the pattern matcher %TAG% in between. This property's value must be a comma separated list of relevant map names with zero or more %TAG% and optional regex. See examples below. | N/A |
-| hazelcast.addon.cluster.expiration.session.foo%TAG%yong.key.type | Key type | STRING |
+| hazelcast.addon.cluster.expiration.session.foo%TAG%yong.key.type | Key type. Valid types are CUSTOM, INTERFACE, OBJECT, PARTITION_AWARE, and STRING. | STRING |
 | hazelcast.addon.cluster.expiration.session.foo%TAG%yong.key.property | Key property. The key class' "get" method that returns the session ID. | N/A |
 | hazelcast.addon.cluster.expiration.session.foo%TAG%yong.key.predicate | Predicate class name. Applies to the CUSTOM key type only. | N/A |
 

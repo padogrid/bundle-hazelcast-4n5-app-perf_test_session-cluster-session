@@ -73,7 +73,7 @@ import com.hazelcast.core.LifecycleListener;
  * <tr>
  * <th style="text-align:left">Property</th>
  * <th style="text-align:left">Description</th>
- * <th style="text-align:left">Default</th> </tr
+ * <th style="text-align:left">Default</th> </tr>
  * <tr>
  * <td>hazelcast.addon.cluster.expiration.tag</td>
  * <td>Tag used as a prefix to each log message and a part of JMX object
@@ -90,16 +90,94 @@ import com.hazelcast.core.LifecycleListener;
  * <td>false</td>
  * </tr>
  * <tr>
+ * <td>hazelcast.addon.cluster.expiration.key.delimiter</td>
+ * <td>Delimiter that separates key string and the sessionID. The sessionID is
+ * always at the tail end of the string value.</td>
+ * <td>@</td>
+ * </tr>
+ * <tr>
  * <td>hazelcast.addon.cluster.expiration.session.</td>
  * <td>Property prefix for specifying a session map and the relevant maps.</td>
  * <td>N/A</td>
  * </tr>
  * <tr>
- * <td>hazelcast.addon.cluster.expiration.key.delimiter</td>
- * <td>Delimiter separating the session ID from the key value. The last token is the session ID.</td>
- * <td>@</td>
+ * <td>hazelcast.addon.cluster.expiration.session.foo%TAG%yong</td>
+ * <td>Primary map name that begins with “foo” and ends with “yong” with the
+ * pattern matcher %TAG% in between. This property’s value must be a comma
+ * separated list of relevant map names with zero or more %TAG% and optional
+ * regex. See examples below.</td>
+ * <td>N/A</td>
+ * </tr>
+ * <tr>
+ * <td>hazelcast.addon.cluster.expiration.session.foo%TAG%yong.key.type</td>
+ * <td>Key type. Valid types are CUSTOM, INTERFACE, OBJECT, PARTITION_AWARE, and
+ * STRING.</td>
+ * <td>STRING</td>
+ * </tr>
+ * <tr>
+ * <td>hazelcast.addon.cluster.expiration.session.foo%TAG%yong.key.property</td>
+ * <td>Key property. The key class’ “get” method that returns the session
+ * ID.</td>
+ * <td>N/A</td>
+ * </tr>
+ * <tr>
+ * <td>hazelcast.addon.cluster.expiration.session.foo%TAG%yong.key.predicate
+ * </td>
+ * <td>Predicate class name. Applies to the CUSTOM key type only.</td>
+ * <td>N/A</td>
  * </tr>
  * </table>
+ * <p>
+ * <b>Notes:</b> %TAG% is a special replacement annotation that makes an exact
+ * match of its position in the string value. Regular expression is supported
+ * for listing relevant map names.
+ * <p>
+ * <b>Example 1:</b>
+ * <p>
+ * <pre>
+ * hazelcast.addon.cluster.expiration.session.foo%TAG%yong: abc_%TAG%,xyz_%TAG%,mymap
+ * </pre>
+ * <p>
+ * The above example matches the following map names.
+ * <p>
+ * <table border="1">
+ * <tr>
+ * <th style="text-align:left">Primary Map</th>
+ * <th style="text-align:left">Relevant Maps</th>
+ * </tr>
+ * <tr>
+ * <td>fooEN01yong</td>
+ * <td>abc_EN01, xyz_EN01, mymap</td>
+ * </tr>
+ * <tr>
+ * <td>fooEN02yong</td>
+ * <td>abc_EN02, xyz_EN02, mymap</td>
+ * </tr>
+ * </table>
+ * <p>
+ * <b>Example 2 (regex):</b>
+ * <p>
+ * <pre>
+ * hazelcast.addon.cluster.expiration.session.foo%TAG%yong: abc_%TAG%_.*_xyz
+ * </pre>
+ * <p>
+ * The above example matches the following map names.
+ * <p>
+ * <table border="1">
+ * <tr>
+ * <th style="text-align:left">Primary Map</th>
+ * <th style="text-align:left">Relevant Maps</th>
+ * </tr>
+ * <tr>
+ * <td>fooEN01yong</td>
+ * <td>abc_EN01_a_xyz, abc_EN01_ab_xyz, abc_EN01_aaaa_xyz</td>
+ * </tr>
+ * <tr>
+ * <td>foo_EN02_yong</td>
+ * <td>abc__EN02__a_xyz, abc__EN02__ab_xyz, abc__EN02__aaaa_xyz</td>
+ * </tr>
+ * </table>
+ * 
  * @author dpark
  *
  */
