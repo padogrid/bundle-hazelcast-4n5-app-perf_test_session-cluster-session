@@ -7,7 +7,7 @@
 
 	<groupId>padogrid.addon</groupId>
 	<!-- @template: Enter your bundle name here -->
-    <artifactId>bundle-hazelcast-4n5-app-perf_test_session-cluster-session</artifactId>
+    <artifactId>bundle-hazelcast-4n5-cluster-session</artifactId>
 	<packaging>pom</packaging>
         <name>${project.artifactId}</name>
 	<version>1.0.0</version>
