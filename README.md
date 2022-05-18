@@ -1,5 +1,4 @@
 # Session Expiration Management Plugin
-
 This bundle provides a plugin that expires session objects in a given map and their relevant entries in other Hazelcast maps.
 
 ## Installing Bundle
@@ -17,6 +16,69 @@ You are storing user session objects in multiple Hazelcast maps. A single user s
 ## `SessionExpirationService` Plugin
 
 The provided `SessionExpirationService` plugin solves this use case by adding an `EntryExpiredListener` to the primary map that gets updated for all session activities. If an entry expires in the primary map, then the listener also expires (or removes) that session's entries from all the relevant maps. To lighten the load on the cluster, `SessionExpirationService` spawns a thread with a blocking queue that takes on the removal tasks.
+
+The plugin supports the following key types for building predicates to remove entries from the relevant maps. Both primary map and relevant maps must be configured with the same key type.
+
+| KeyType         | Description |
+| --------------- | ----------- |
+| INTERFACE       | All key classes must implement the `ISessionId` interface |
+| OBJECT          | All key classes must implement the user-specified property (getter method) |
+| CUSTOM          | A predicate class that implements the `ISessionIdPredicate` interface must be provided |
+| PARTITION_AWARE | All key classes must implement the `PartitionAware` interface. It uses `PartitionAware.getPartitionKey()` as the session ID. |
+| STRING          | If key type is not defined or any of the other key types fails, then the plugin defaults to the STRING key type. It applies the delimiter to extract the last token in the string value returned from `toString()`. The extracted token is the session ID. The default delimiter is '@'. |
+
+The predicates are built as follows (See source code: [SessionExpirationService.java](clusters/session/src/main/java/org/hazelcast/addon/cluster/expiration/SessionExpirationService.java)):
+
+### INTERFACE
+
+```java
+String sessionId = ((ISessionId) sessionInfo.key).getSessionId();
+predicate = Predicates.equal("__key.sessionId", sessionId);
+```
+
+### OBJECT
+
+```java
+Method method = sessionInfo.key.getClass().getMethod(sessionData.getterMethodName);
+Object sessionId = method.invoke(sessionInfo.key);
+if (sessionId != null) {
+    predicate = Predicates.equal("__key." + sessionData.keyProperty, sessionId.toString());
+}
+```
+
+### CUSTOM
+
+```java
+predicate = sessionData.sessionIdPredicate.getPredicate(sessionInfo.sessionMapName,
+sessionInfo.key);
+```
+
+### PARTITION_AWARE
+
+```java
+Object partitionKey = ((PartitionAware) sessionInfo.key).getPartitionKey();
+if (partitionKey != null) {
+    predicate = Predicates.equal("__key.partitionKey", partitionKey.toString());
+}
+```
+
+### STRING
+
+```java
+String keyStr = sessionInfo.key.toString();
+int index = keyStr.lastIndexOf(delimiter);
+String sessionId;
+if (index == -1) {
+    sessionId = keyStr;
+} else {
+    sessionId = keyStr.substring(index + delimiter.length());
+}
+if (sessionId.length() != 0) {
+    predicate = Predicates.like("__key", "%" + sessionId);
+}
+```
+
+:exclamation: Make sure to index your keys to get the optimal predicate query performance. See the examples shown below.
 
 ## Installation Steps
 
