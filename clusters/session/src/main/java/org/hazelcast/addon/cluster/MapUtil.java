@@ -42,7 +42,7 @@ public class MapUtil {
 
 	/**
 	 * Removes all entries in the local member partitions that match the specified
-	 * predicate. This is an expensive operation as executes the predicate on each
+	 * predicate. This is an expensive operation as it executes the predicate on each
 	 * primary partition. If the predicate is for keys, then use
 	 * {@link #removeMemberAllKeySet(IMap, Predicate)} instead for better
 	 * performance.
