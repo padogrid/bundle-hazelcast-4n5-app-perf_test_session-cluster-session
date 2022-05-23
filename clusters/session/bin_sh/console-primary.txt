@@ -1,0 +1,2 @@
+ns smks_EN01
+m.put s1@k1 hello

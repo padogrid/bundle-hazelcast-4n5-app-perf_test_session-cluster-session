@@ -64,7 +64,7 @@ hazelcast:
   listeners:
     # SessionExpirationServiceInitializer is invoked during bootstrap to
     # initialize and start SessionExpirationService.
-    - org.hazelcast.addon.cluster.expiration.SessionExpirationServiceInitializer
+    - org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationServiceInitializer_SessionMetadata_Delete
   management-center:
     scripting-enabled: true
   user-code-deployment:
@@ -107,85 +107,52 @@ hazelcast:
       time-to-live-seconds: 3600
       max-idle-seconds: 5
       entry-listeners:
-        - class-name: org.hazelcast.addon.cluster.expiration.SessionExpirationListener
-          include-value: false
+        - class-name: org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationListener_SessionMetadata_Delete
+          include-value: true
     mki*:
       time-to-live-seconds: 3600
-      indexes:
-        - type: HASH
-          attributes:
-            - "__key.sessionId"
 
     # OBJECT
     smko_*:
       time-to-live-seconds: 3600
       max-idle-seconds: 5
       entry-listeners:
-        - class-name: org.hazelcast.addon.cluster.expiration.SessionExpirationListener
-          include-value: false
+        - class-name: org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationListener_SessionMetadata_Delete
+          include-value: true
     mko*:
       time-to-live-seconds: 3600
-      indexes:
-        - type: HASH
-          attributes:
-            - "__key.sessionId"
 
     # CUSTOM
     smkc_*:
       time-to-live-seconds: 3600
       max-idle-seconds: 5
       entry-listeners:
-        - class-name: org.hazelcast.addon.cluster.expiration.SessionExpirationListener
-          include-value: false
+        - class-name: org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationListener_SessionMetadata_Delete
+          include-value: true
     mkc*:
       time-to-live-seconds: 3600
-      indexes:
-        - type: HASH
-          attributes:
-            - "__key.sessionId"
 
     # PARTITION_AWARE
     smkp_*:
       time-to-live-seconds: 3600
       max-idle-seconds: 5
       entry-listeners:
-        - class-name: org.hazelcast.addon.cluster.expiration.SessionExpirationListener
-          include-value: false
+        - class-name: org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationListener_SessionMetadata_Delete
+          include-value: true
     mkp*:
       time-to-live-seconds: 3600
-      indexes:
-        - type: HASH
-          attributes:
-            - "__key.partitionKey"
 
     # STRING
     smks_*:
       time-to-live-seconds: 3600
       max-idle-seconds: 5
       entry-listeners:
-        - class-name: org.hazelcast.addon.cluster.expiration.SessionExpirationListener
-          include-value: false
+        - class-name: org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationListener_SessionMetadata_Delete
+          include-value: true
     mks*:
       time-to-live-seconds: 3600
-
-    # OBJECT
-    mkp_session_web_session_fi_session_id_mapping_*:
-      time-to-live-seconds: 3600
-      max-idle-seconds: 5
-      entry-listeners:
-        - class-name: org.hazelcast.addon.cluster.expiration.SessionExpirationListener
-          include-value: false
-
-    # Index relevant maps for better performance
-    mkp_session_fi_session_data_*:
-      indexes:
-        - type: HASH
-          attributes:
-            - "__key.sessionId"
-
-    # Index relevant maps for better performance
-    mkp_session_application_data_*:
-      indexes:
-        - type: HASH
-          attributes:
-            - "__key.sessionId"
+            
+  serialization:
+    data-serializable-factories:
+      - factory-id: 1010
+        class-name: org.hazelcast.addon.cluster.expiration.metadata.ExpirationDataSerializableFactory

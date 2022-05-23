@@ -11,7 +11,7 @@ import com.hazelcast.core.LifecycleEvent;
 import com.hazelcast.core.LifecycleListener;
 
 /**
- * {@linkplain SessionExpirationServiceInitializer} initializes and starts
+ * {@linkplain SessionExpirationServiceInitializer_Get} initializes and starts
  * {@linkplain SessionExpirationService} with the session properties extracted
  * from the Hazelcast configuration.
  * <p>
@@ -198,7 +198,7 @@ import com.hazelcast.core.LifecycleListener;
  * @author dpark
  *
  */
-public class SessionExpirationServiceInitializer implements LifecycleListener {
+public class SessionExpirationServiceInitializer_Get implements LifecycleListener {
 
 	@SuppressWarnings("rawtypes")
 	@Override
@@ -218,7 +218,7 @@ public class SessionExpirationServiceInitializer implements LifecycleListener {
 				}
 			}
 
-			SessionExpirationService.getExpirationService().initialize(serviceProperties);
+			SessionExpirationService_Get.getExpirationService().initialize(serviceProperties);
 			break;
 
 		default:

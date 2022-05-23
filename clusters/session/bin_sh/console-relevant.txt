@@ -1,0 +1,4 @@
+ns mks1_EN01
+m.put s1@k1 r1
+ns mks2_EN01
+m.put s1@k2 r2

@@ -1,8 +1,12 @@
-package org.hazelcast.addon.cluster.expiration;
+package org.hazelcast.addon.cluster.expiration.metadata;
 
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
+import org.hazelcast.addon.cluster.expiration.KeyType;
+import org.hazelcast.addon.cluster.expiration.SessionExpirationService;
+import org.hazelcast.addon.cluster.expiration.SessionExpirationServiceConfiguration;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
@@ -11,7 +15,7 @@ import com.hazelcast.core.LifecycleEvent;
 import com.hazelcast.core.LifecycleListener;
 
 /**
- * {@linkplain SessionExpirationServiceInitializer} initializes and starts
+ * {@linkplain SessionExpirationServiceInitializer_SessionMetadata_Delete} initializes and starts
  * {@linkplain SessionExpirationService} with the session properties extracted
  * from the Hazelcast configuration.
  * <p>
@@ -198,7 +202,7 @@ import com.hazelcast.core.LifecycleListener;
  * @author dpark
  *
  */
-public class SessionExpirationServiceInitializer implements LifecycleListener {
+public class SessionExpirationServiceInitializer_SessionMetadata_Delete implements LifecycleListener {
 
 	@SuppressWarnings("rawtypes")
 	@Override
@@ -218,7 +222,7 @@ public class SessionExpirationServiceInitializer implements LifecycleListener {
 				}
 			}
 
-			SessionExpirationService.getExpirationService().initialize(serviceProperties);
+			SessionExpirationService_SessionMetadata_Delete.getExpirationService().initialize(serviceProperties);
 			break;
 
 		default:

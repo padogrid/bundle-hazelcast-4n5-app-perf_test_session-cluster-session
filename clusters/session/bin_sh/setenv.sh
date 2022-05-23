@@ -47,5 +47,18 @@ JAVA_OPTS="$JAVA_OPTS -Dhazelcast.member.naming.moby.enabled=false"
 # Turn off health monitoring logging
 JAVA_OPTS="$JAVA_OPTS -Dhazelcast.health.monitoring.level=OFF"
 
+HAZELCAST_CLIENT_CONFIG_FILE=$ETC_DIR/hazelcast-client.xml
+
 # Hazelcast config file. Default: $ETC_DIR/hazelcast.xml
+
+# YAML
 CONFIG_FILE=$ETC_DIR/hazelcast.yaml
+#CONFIG_FILE=$ETC_DIR/hazelcast-get.yaml
+#CONFIG_FILE=$ETC_DIR/hazelcast-session-metadata-delete.yaml
+#CONFIG_FILE=$ETC_DIR/hazelcast-session-metadata-get.yaml
+
+# XML
+#CONFIG_FILE=$ETC_DIR/hazelcast.xml
+#CONFIG_FILE=$ETC_DIR/hazelcast-get.xml
+#CONFIG_FILE=$ETC_DIR/hazelcast-session-metadata-delete.xml
+#CONFIG_FILE=$ETC_DIR/hazelcast-session-metadata-get.xml

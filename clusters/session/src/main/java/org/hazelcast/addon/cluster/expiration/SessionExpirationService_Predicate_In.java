@@ -29,16 +29,20 @@ import com.hazelcast.query.Predicate;
 import com.hazelcast.query.Predicates;
 
 /**
- * {@linkplain SessionExpirationService} is a singleton class that expires all
- * the specified session relevant entries from the pattern matching maps by
- * deleting entries.
+ * {@linkplain SessionExpirationService_Predicate_In} is a singleton class that
+ * expires all the specified session relevant entries from the pattern matching
+ * maps.
+ * <p>
+ * <b>Experimental:</b>
+ * <p>
+ * This class is experimental only. Predicate "in" is slightly faster than "or".
  * 
  * @author dpark
  *
  */
-public class SessionExpirationService implements SessionExpirationServiceConfiguration {
+public class SessionExpirationService_Predicate_In implements SessionExpirationServiceConfiguration {
 
-	private final static SessionExpirationService expirationService = new SessionExpirationService();
+	private final static SessionExpirationService_Predicate_In expirationService = new SessionExpirationService_Predicate_In();
 
 	private ILogger logger = null;
 
@@ -46,10 +50,6 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 	private Thread consumerThread;
 	private BlockingQueue<SessionInfo> queue = new LinkedBlockingQueue<SessionInfo>();
 	private HazelcastInstance hazelcastInstance;
-
-	public HazelcastInstance getHazelcastInstance() {
-		return hazelcastInstance;
-	}
 
 	private String tag;
 	private String logPrefix;
@@ -60,11 +60,11 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 	// delimiter is used for STRING key type only
 	private String delimiter = DEFAULT_KEY_DELIMTER;
 
-	// queue drain size
-	private int queueDrainSize = DEFAULT_EXPIRATION_QUEUE_DRAIN_SIZE;
-
 	// Session ID as prefix or postfix. Default: prefix (for performance)
 	private boolean isPostfix = false;
+
+	// queue drain size
+	private int queueDrainSize = DEFAULT_EXPIRATION_QUEUE_DRAIN_SIZE;
 
 	// tagMap contains <tagged primary map name, SessionData> entries
 	private HashMap<String, SessionData> tagMap = new HashMap<String, SessionData>(10);
@@ -72,11 +72,11 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 	// sessionMaps contains <actual primary map name, SessionTag> entries
 	private Map<String, SessionTag> sessionMap = new HashMap<String, SessionTag>(10);
 
-	public final static SessionExpirationService getExpirationService() {
+	public final static SessionExpirationService_Predicate_In getExpirationService() {
 		return expirationService;
 	}
 
-	private SessionExpirationService() {
+	private SessionExpirationService_Predicate_In() {
 	}
 
 	/**
@@ -97,7 +97,7 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 
 		// tag used for logging and JMX only. This tag is different from
 		// NAME_TAG which applies to SessionTag.
-		tag = properties.getProperty(PROPERTY_TAG, SessionExpirationService.class.getSimpleName());
+		tag = properties.getProperty(PROPERTY_TAG, SessionExpirationService_Predicate_In.class.getSimpleName());
 		logPrefix = tag + ": ";
 		int index = PROPERTY_SESSION_PREFIX.length();
 		String[] split = PROPERTY_SESSION_PREFIX.split("\\.");
@@ -202,7 +202,6 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 						+ "]. Using the default value of " + DEFAULT_EXPIRATION_QUEUE_DRAIN_SIZE + " instead.");
 			}
 		}
-
 		String bool = properties.getProperty(PROPERTY_STRING_KEY_SESSION_POSTFIX_ENABLED, "false");
 		isPostfix = bool.equalsIgnoreCase("true");
 
@@ -211,7 +210,7 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 
 		// Start thread as daemon
 		consumer = new Consumer(queue);
-		consumerThread = new Thread(consumer, SessionExpirationService.class.getSimpleName());
+		consumerThread = new Thread(consumer, SessionExpirationService_Predicate_In.class.getSimpleName());
 		consumerThread.setDaemon(true);
 		consumerThread.start();
 
@@ -248,10 +247,11 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 					type = "Metrics";
 				} else {
 					header = "org.hazelcast.addon";
-					type = SessionExpirationService.class.getSimpleName();
+					type = SessionExpirationService_Predicate_In.class.getSimpleName();
 				}
-				objectName = new ObjectName(header + ":name=" + SessionExpirationService.class.getSimpleName()
-						+ ",instance=" + instanceName + ",type=" + type + ",tag=" + tag);
+				objectName = new ObjectName(
+						header + ":name=" + SessionExpirationService_Predicate_In.class.getSimpleName() + ",instance="
+								+ instanceName + ",type=" + type + ",tag=" + tag);
 				platformMBeanServer.registerMBean(status, objectName);
 				logger.info(logPrefix + SessionExpirationServiceStatusMBean.class.getSimpleName()
 						+ " registered: objectName=" + objectName.toString() + ", tag=" + tag);
@@ -392,7 +392,7 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 			this.queue = queue;
 		}
 
-		@SuppressWarnings("rawtypes")
+		@SuppressWarnings({ "rawtypes" })
 		public void run() {
 			while (shouldRun) {
 				String sessionMapName = null;
@@ -412,8 +412,9 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 						}
 						sessionInfoListPerMap.add(si);
 					}
-					Map<String, IMap> allMapsInHazelcast = ClusterUtil.getAllMaps(hazelcastInstance);
 
+					Map<String, IMap> allMapsInHazelcast = ClusterUtil.getAllMaps(hazelcastInstance);
+					ArrayList<Comparable> compareableList = new ArrayList<Comparable>();
 					for (Map.Entry<String, ArrayList<SessionInfo>> entry : smap.entrySet()) {
 						sessionMapName = entry.getKey();
 						ArrayList<SessionInfo> sessionInfoListPerMap = entry.getValue();
@@ -436,15 +437,15 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 							for (SessionInfo sessionInfo : sessionInfoListPerMap) {
 								if (sessionInfo.key instanceof ISessionId) {
 									String sessionId = ((ISessionId) sessionInfo.key).getSessionId();
-									innerPredicate = Predicates.equal("__key.sessionId", sessionId);
-									if (predicate == null) {
-										predicate = innerPredicate;
-									} else if (innerPredicate != null) {
-										predicate = Predicates.or(predicate, innerPredicate);
-									}
+									compareableList.add(sessionId);
 								}
 							}
+							if (compareableList.size() > 0) {
+								predicate = Predicates.in("__key.sessionId",
+										compareableList.toArray(new Comparable[compareableList.size()]));
+							}
 							break;
+
 						case OBJECT:
 							if (sessionData.keyProperty == null) {
 								break;
@@ -454,13 +455,7 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 									Method method = sessionInfo.key.getClass().getMethod(sessionData.getterMethodName);
 									Object sessionId = method.invoke(sessionInfo.key);
 									if (sessionId != null) {
-										innerPredicate = Predicates.equal("__key." + sessionData.keyProperty,
-												sessionId.toString());
-										if (predicate == null) {
-											predicate = innerPredicate;
-										} else if (innerPredicate != null) {
-											predicate = Predicates.or(predicate, innerPredicate);
-										}
+										compareableList.add(sessionId.toString());
 									}
 								} catch (Exception ex) {
 									logger.warning(logPrefix + "Exception ocurred while processing " + KeyType.OBJECT
@@ -468,23 +463,25 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 											+ sessionInfo.sessionMapName + ".", ex);
 								}
 							}
-							break;
-						case PARTITION_AWARE:
-							for (SessionInfo sessionInfo : sessionInfoListPerMap) {
-								if (sessionInfo.key instanceof PartitionAware) {
-									Object partitionKey = ((PartitionAware) sessionInfo.key).getPartitionKey();
-									if (partitionKey != null) {
-										innerPredicate = Predicates.equal("__key.partitionKey",
-												partitionKey.toString());
-									}
-									if (predicate == null) {
-										predicate = innerPredicate;
-									} else if (innerPredicate != null) {
-										predicate = Predicates.or(predicate, innerPredicate);
-									}
-								}
+							if (compareableList.size() > 0) {
+								predicate = Predicates.in("__key." + sessionData.keyProperty,
+										compareableList.toArray(new Comparable[compareableList.size()]));
 							}
 							break;
+
+						case PARTITION_AWARE:
+							for (SessionInfo sessionInfo : sessionInfoListPerMap) {
+								Object partitionKey = ((PartitionAware) sessionInfo.key).getPartitionKey();
+								if (partitionKey != null) {
+									compareableList.add(partitionKey.toString());
+								}
+							}
+							if (compareableList.size() > 0) {
+								predicate = Predicates.in("__key.partitionKey",
+										compareableList.toArray(new Comparable[compareableList.size()]));
+							}
+							break;
+
 						case CUSTOM:
 							for (SessionInfo sessionInfo : sessionInfoListPerMap) {
 								if (sessionData.sessionIdPredicate != null) {
@@ -492,55 +489,35 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 											.getPredicate(sessionInfo.sessionMapName, sessionInfo.key);
 									if (predicate == null) {
 										predicate = innerPredicate;
-									} else if (innerPredicate != null) {
+									} else {
 										predicate = Predicates.or(predicate, innerPredicate);
 									}
 								}
 							}
 							break;
+
 						case STRING:
 						default:
-							/*
-							 * The session ID is the last part of the key string separated by the delimiter.
-							 * If the key does not contain the delimiter, then the entire key string is used
-							 * as the session ID.
-							 */
-							if (isPostfix) {
-								for (SessionInfo sessionInfo : sessionInfoListPerMap) {
-									String keyStr = sessionInfo.key.toString();
-									int index = keyStr.lastIndexOf(delimiter);
-									String sessionIdWithDelimiter;
-									if (index == -1) {
-										sessionIdWithDelimiter = keyStr;
-									} else {
-										sessionIdWithDelimiter = keyStr.substring(index);
-									}
-									if (sessionIdWithDelimiter.length() != 0) {
-										innerPredicate = Predicates.like("__key", "%" + sessionIdWithDelimiter);
-										if (predicate == null) {
-											predicate = innerPredicate;
-										} else if (innerPredicate != null) {
-											predicate = Predicates.or(predicate, innerPredicate);
-										}
-									}
+							for (SessionInfo sessionInfo : sessionInfoListPerMap) {
+								/*
+								 * The session ID is the last part of the key string separated by the delimiter.
+								 * If the key does not contain the delimiter, then the entire key string is used
+								 * as the session ID.
+								 */
+								String keyStr = sessionInfo.key.toString();
+								int index = keyStr.lastIndexOf(delimiter);
+								String sessionId;
+								if (index == -1) {
+									sessionId = keyStr;
+								} else {
+									sessionId = keyStr.substring(index + delimiter.length());
 								}
-							} else {
-								for (SessionInfo sessionInfo : sessionInfoListPerMap) {
-									String keyStr = sessionInfo.key.toString();
-									int index = keyStr.indexOf(delimiter);
-									String sessionIdWithDelimiter;
-									if (index == -1) {
-										sessionIdWithDelimiter = keyStr;
+								if (sessionId.length() != 0) {
+									innerPredicate = Predicates.like("__key", "%" + sessionId);
+									if (predicate == null) {
+										predicate = innerPredicate;
 									} else {
-										sessionIdWithDelimiter = keyStr.substring(0, index + 1);
-									}
-									if (sessionIdWithDelimiter.length() != 0) {
-										innerPredicate = Predicates.like("__key", sessionIdWithDelimiter + "%");
-										if (predicate == null) {
-											predicate = innerPredicate;
-										} else if (innerPredicate != null) {
-											predicate = Predicates.or(predicate, innerPredicate);
-										}
+										predicate = Predicates.or(predicate, innerPredicate);
 									}
 								}
 							}
@@ -575,6 +552,7 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 			}
 			isTerminated = true;
 			queue.clear();
+
 			updateMBean();
 		}
 
@@ -609,8 +587,9 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 
 	/**
 	 * {@linkplain SessionInfo} holds session map name and key.
-	 * {@linkplain SessionExpirationService} enqueues {@linkplain SessionInfo}
-	 * objects upon receiving primary session map entry expiration events.
+	 * {@linkplain SessionExpirationService_Predicate_In} enqueues
+	 * {@linkplain SessionInfo} objects upon receiving primary session map entry
+	 * expiration events.
 	 * 
 	 * @author dpark
 	 *
@@ -628,7 +607,7 @@ public class SessionExpirationService implements SessionExpirationServiceConfigu
 	/**
 	 * {@linkplain SessionData} holds the tagged primary map name and its applicable
 	 * data configured and determined during the
-	 * {@linkplain SessionExpirationService} initialization time.
+	 * {@linkplain SessionExpirationService_Predicate_In} initialization time.
 	 * 
 	 * @author dpark
 	 *

@@ -1,9 +1,11 @@
 package org.hazelcast.addon.cluster.expiration.test;
 
+import java.text.NumberFormat;
 import java.util.UUID;
 
 import org.hazelcast.addon.cluster.expiration.KeyType;
 import org.hazelcast.addon.cluster.expiration.SessionExpirationService;
+import org.hazelcast.addon.cluster.expiration.metadata.SessionMetadata;
 
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.core.HazelcastInstance;
@@ -11,8 +13,8 @@ import com.hazelcast.map.IMap;
 
 /**
  * {@linkplain SessionExpirationTestClient} is a client driver for ingesting
- * session data into a primary {@linkplain IMap} and its relevant maps serviced by
- * {@linkplain SessionExpirationService}. 
+ * session data into a primary {@linkplain IMap} and its relevant maps serviced
+ * by {@linkplain SessionExpirationService}.
  * 
  * @author dpark
  *
@@ -21,23 +23,33 @@ public class SessionExpirationTestClient {
 
 	public final static String PROPERTY_executableName = "executable.name";
 
+	enum EntryType {
+		INGEST, PUT, RESET, GET, METADATA
+	}
+
 	KeyType keyType;
 	int count;
 	String primaryMapName;
 	String[] relevantMapNames;
+	EntryType entryType;
+	String sessionId;
+	String attribute;
 	HazelcastInstance hzInstance;
 
-	SessionExpirationTestClient(KeyType keyType, int count, String primaryMapName, String[] relevantMapNames) {
+	SessionExpirationTestClient(KeyType keyType, int count, String primaryMapName, String[] relevantMapNames,
+			EntryType entryType, String sessionId, String attribute) {
 		this.keyType = keyType;
 		this.count = count;
 		this.primaryMapName = primaryMapName;
 		this.relevantMapNames = relevantMapNames;
+		this.entryType = entryType;
+		this.sessionId = sessionId;
+		this.attribute = attribute;
 		this.hzInstance = HazelcastClient.newHazelcastClient();
 	}
 
 	@SuppressWarnings("rawtypes")
-	void ingestData() {
-		System.out.println("Ingesting data [" + keyType + "]...");
+	void ingestData(boolean isMetadata, boolean isPostfix) {
 		IMap primaryMap = hzInstance.getMap(primaryMapName);
 		IMap[] relevantMaps = new IMap[relevantMapNames.length];
 		for (int i = 0; i < relevantMapNames.length; i++) {
@@ -49,89 +61,388 @@ public class SessionExpirationTestClient {
 		for (byte i = 0; i < blob.length; i++) {
 			blob[i] = i;
 		}
+		
+		if (keyType == KeyType.STRING) {
+			if (isPostfix) {
+				writeLine("String key(s) with session ID as postfix: attribute@sessionId");
+			} else {
+				writeLine("String key(s) with session ID as prefix: sessionId@attribute");
+			}
+		}
 
-		switch (keyType) {
-		case INTERFACE:
-			ingestInterfaceKey(primaryMap, relevantMaps, blob);
+		if (isMetadata) {
+			switch (entryType) {
+			case GET:
+				Object value;
+				if (isPostfix) {
+					value = getStringKey_SessionId_Postfix(primaryMap, sessionId, attribute);
+				} else {
+					value = getStringKey_SessionId_Prefix(primaryMap, sessionId, attribute);
+				}
+				writeLine("Get value: " + value);
+				break;
+			case PUT:
+				if (isPostfix) {
+					setStringKey_Postfix(primaryMap, relevantMaps, sessionId, attribute, blob);
+				} else {
+					setStringKey_Prefix(primaryMap, relevantMaps, sessionId, attribute, blob);
+				}
+				break;
+			case RESET:
+			default:
+				if (isPostfix) {
+					resetStringKey_SessionMap_SessionId_Postfix(primaryMap, relevantMaps, sessionId, attribute);
+				} else {
+					resetStringKey_SessionMap_SessionId_Prefix(primaryMap, relevantMaps, sessionId, attribute);
+				}
+				break;
+			}
+			return;
+		}
+
+		switch (entryType) {
+		case GET:
+			writeLine("Putting entry [" + keyType + "]...");
+			Object value = null;
+			switch (keyType) {
+			case INTERFACE:
+				value = getInterfaceKey(primaryMap, sessionId, attribute);
+				break;
+			case OBJECT:
+				value = getObjectKey(primaryMap, sessionId, attribute);
+				break;
+			case CUSTOM:
+				value = getCustomKey(primaryMap, sessionId, attribute);
+				break;
+			case PARTITION_AWARE:
+				value = getPartitionAwareyKey(primaryMap, sessionId, attribute);
+				break;
+			case STRING:
+			default:
+				if (isPostfix) {
+					value = getStringKey_SessionId_Postfix(primaryMap, sessionId, attribute);
+				} else {
+					value = getStringKey_SessionId_Prefix(primaryMap, sessionId, attribute);
+				}
+				break;
+			}
+			writeLine("Get value: " + value);
 			break;
-		case OBJECT:
-			ingestObjectKey(primaryMap, relevantMaps, blob);
+
+		case PUT:
+			writeLine("Putting entry [" + keyType + "]...");
+			switch (keyType) {
+			case INTERFACE:
+				setInterfaceKey(primaryMap, relevantMaps, sessionId, attribute, blob);
+				break;
+			case OBJECT:
+				setObjectKey(primaryMap, relevantMaps, sessionId, attribute, blob);
+				break;
+			case CUSTOM:
+				setCustomKey(primaryMap, relevantMaps, sessionId, attribute, blob);
+				break;
+			case PARTITION_AWARE:
+				setPartitionAwareyKey(primaryMap, relevantMaps, sessionId, attribute, blob);
+				break;
+			case STRING:
+			default:
+				if (isPostfix) {
+					setStringKey_Postfix(primaryMap, relevantMaps, sessionId, attribute, blob);
+				} else {
+					setStringKey_Prefix(primaryMap, relevantMaps, sessionId, attribute, blob);
+				}
+				break;
+			}
 			break;
-		case CUSTOM:
-			ingestCustomKey(primaryMap, relevantMaps, blob);
+
+		case RESET:
+			writeLine("Resetting entry [" + keyType + "]...");
+			switch (keyType) {
+			case INTERFACE:
+				resetInterfaceKey(primaryMap, sessionId, attribute, blob);
+				break;
+			case OBJECT:
+				resetObjectKey(primaryMap, sessionId, attribute, blob);
+				break;
+			case CUSTOM:
+				resetCustomKey(primaryMap, sessionId, attribute, blob);
+				break;
+			case PARTITION_AWARE:
+				resetPartitionAwareyKey(primaryMap, sessionId, attribute, blob);
+				break;
+			case STRING:
+			default:
+				if (isPostfix) {
+					resetStringKey_SessionId_Postfix(primaryMap, sessionId, attribute, blob);
+				} else {
+					resetStringKey_SessionId_Prefix(primaryMap, sessionId, attribute, blob);
+				}
+				break;
+			}
 			break;
-		case PARTITION_AWARE:
-			ingestPartitionAwareyKey(primaryMap, relevantMaps, blob);
-			break;
-		case STRING:
+
+		case INGEST:
 		default:
-			ingestStringKey(primaryMap, relevantMaps, blob);
+			writeLine("Ingesting data [" + keyType + "]...");
+			long startTime = System.currentTimeMillis();
+			switch (keyType) {
+			case INTERFACE:
+				ingestInterfaceKey(primaryMap, relevantMaps, blob);
+				break;
+			case OBJECT:
+				ingestObjectKey(primaryMap, relevantMaps, blob);
+				break;
+			case CUSTOM:
+				ingestCustomKey(primaryMap, relevantMaps, blob);
+				break;
+			case PARTITION_AWARE:
+				ingestPartitionAwareyKey(primaryMap, relevantMaps, blob);
+				break;
+			case STRING:
+			default:
+				if (isPostfix) {
+					ingestStringKey_SessionId_Postfix(primaryMap, relevantMaps, blob);
+				} else {
+					ingestStringKey_SessionId_Prefix(primaryMap, relevantMaps, blob);
+				}
+				break;
+			}
+			long timeTook = System.currentTimeMillis() - startTime;
+			NumberFormat nf = NumberFormat.getInstance();
+			nf.setMaximumFractionDigits(2);
+			double tsd = (double) timeTook / 1000d;
+			double tsm = (double) timeTook / 60000d;
+			writeLine("Time took (msec): " + timeTook);
+			writeLine(" Time took (sec): " + nf.format(tsd));
+			writeLine(" Time took (min): " + nf.format(tsm));
 			break;
+
+		}
+
+	}
+
+	@SuppressWarnings({ "rawtypes" })
+	Object getInterfaceKey(IMap map, String sessionId, String attribute) {
+		InterfaceKey key = new InterfaceKey(sessionId, attribute);
+		return map.get(key);
+	}
+
+	@SuppressWarnings({ "rawtypes" })
+	Object getObjectKey(IMap map, String sessionId, String attribute) {
+		ObjectKey key = new ObjectKey(sessionId, attribute);
+		return map.get(key);
+	}
+
+	@SuppressWarnings({ "rawtypes" })
+	Object getCustomKey(IMap map, String sessionId, String attribute) {
+		CustomKey key = new CustomKey(sessionId, attribute);
+		return map.get(key);
+	}
+
+	@SuppressWarnings({ "rawtypes" })
+	Object getPartitionAwareyKey(IMap map, String sessionId, String attribute) {
+		PartitionAwareKey key = new PartitionAwareKey(sessionId, attribute);
+		return map.get(key);
+	}
+
+	@SuppressWarnings({ "rawtypes" })
+	Object getStringKey_SessionId_Postfix(IMap map, String sessionId, String attribute) {
+		String key = attribute + "@" + sessionId;
+		return map.get(key);
+	}
+
+	@SuppressWarnings({ "rawtypes" })
+	Object getStringKey_SessionId_Prefix(IMap map, String sessionId, String attribute) {
+		String key = sessionId + "@" + attribute;
+		return map.get(key);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void resetInterfaceKey(IMap map, String sessionId, String attribute, byte[] blob) {
+		InterfaceKey key = new InterfaceKey(sessionId, attribute);
+		map.set(key, blob);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void resetObjectKey(IMap map, String sessionId, String attribute, byte[] blob) {
+		ObjectKey key = new ObjectKey(sessionId, attribute);
+		map.set(key, blob);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void resetCustomKey(IMap map, String sessionId, String attribute, byte[] blob) {
+		CustomKey key = new CustomKey(sessionId, attribute);
+		map.set(key, blob);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void resetPartitionAwareyKey(IMap map, String sessionId, String attribute, byte[] blob) {
+		PartitionAwareKey key = new PartitionAwareKey(sessionId, attribute);
+		map.set(key, blob);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void resetStringKey_SessionId_Postfix(IMap map, String sessionId, String attribute, byte[] blob) {
+		String key = attribute + "@" + sessionId;
+		map.set(key, blob);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void resetStringKey_SessionId_Prefix(IMap map, String sessionId, String attribute, byte[] blob) {
+		String key = sessionId + "@" + attribute;
+		map.set(key, blob);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void resetStringKey_SessionMap_SessionId_Postfix(IMap map, IMap[] relevantMaps, String sessionId,
+			String attribute) {
+		String key = attribute + "@" + sessionId;
+		SessionMetadata sm = new SessionMetadata();
+		for (IMap rmap : relevantMaps) {
+			sm.addRelevantKey(rmap.getName(), key);
+		}
+		map.set(key, sm);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void resetStringKey_SessionMap_SessionId_Prefix(IMap map, IMap[] relevantMaps, String sessionId, String attribute) {
+		String key = sessionId + "@" + attribute;
+		SessionMetadata sm = new SessionMetadata();
+		for (IMap rmap : relevantMaps) {
+			sm.addRelevantKey(rmap.getName(), key);
+		}
+		map.set(key, sm);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void setInterfaceKey(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
+		InterfaceKey key = new InterfaceKey(sessionId, attribute);
+		SessionMetadata sm = new SessionMetadata();
+		for (IMap rmap : relevantMaps) {
+			sm.addRelevantKey(rmap.getName(), key);
+		}
+		map.set(key, sm);
+		for (IMap rmap : relevantMaps) {
+			rmap.set(key, blob);
 		}
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void setObjectKey(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
+		ObjectKey key = new ObjectKey(sessionId, attribute);
+		SessionMetadata sm = new SessionMetadata();
+		for (IMap rmap : relevantMaps) {
+			sm.addRelevantKey(rmap.getName(), key);
+		}
+		map.set(key, sm);
+		for (IMap rmap : relevantMaps) {
+			rmap.set(key, blob);
+		}
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void setCustomKey(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
+		CustomKey key = new CustomKey(sessionId, attribute);
+		SessionMetadata sm = new SessionMetadata();
+		for (IMap rmap : relevantMaps) {
+			sm.addRelevantKey(rmap.getName(), key);
+		}
+		map.set(key, sm);
+		for (IMap rmap : relevantMaps) {
+			rmap.set(key, blob);
+		}
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void setPartitionAwareyKey(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
+		PartitionAwareKey key = new PartitionAwareKey(sessionId, attribute);
+		SessionMetadata sm = new SessionMetadata();
+		for (IMap rmap : relevantMaps) {
+			sm.addRelevantKey(rmap.getName(), key);
+		}
+		map.set(key, sm);
+		for (IMap rmap : relevantMaps) {
+			rmap.set(key, blob);
+		}
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void setStringKey_Postfix(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
+		String key = attribute + "@" + sessionId;
+		SessionMetadata sm = new SessionMetadata();
+		for (IMap rmap : relevantMaps) {
+			sm.addRelevantKey(rmap.getName(), key);
+		}
+		map.set(key, sm);
+		for (IMap rmap : relevantMaps) {
+			rmap.set(key, blob);
+		}
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void setStringKey_Prefix(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
+		String key = sessionId + "@" + attribute;
+		SessionMetadata sm = new SessionMetadata();
+		for (IMap rmap : relevantMaps) {
+			sm.addRelevantKey(rmap.getName(), key);
+		}
+		map.set(key, sm);
+		for (IMap rmap : relevantMaps) {
+			rmap.set(key, blob);
+		}
+	}
+
+	@SuppressWarnings({ "rawtypes" })
 	void ingestInterfaceKey(IMap map, IMap[] relevantMaps, byte[] blob) {
 		for (int i = 0; i < count; i++) {
 			String sessionId = UUID.randomUUID().toString();
 			String attribute = "attr" + i;
-			InterfaceKey key = new InterfaceKey(sessionId, attribute);
-			map.put(key, blob);
-			for (IMap rmap : relevantMaps) {
-				rmap.put(key, blob);
-			}
+			setInterfaceKey(map, relevantMaps, sessionId, attribute, blob);
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SuppressWarnings({ "rawtypes" })
 	void ingestObjectKey(IMap map, IMap[] relevantMaps, byte[] blob) {
 		for (int i = 0; i < count; i++) {
 			String sessionId = UUID.randomUUID().toString();
 			String attribute = i + "";
-			ObjectKey key = new ObjectKey(sessionId, attribute);
-			map.put(key, blob);
-			for (IMap rmap : relevantMaps) {
-				rmap.put(key, blob);
-			}
+			setObjectKey(map, relevantMaps, sessionId, attribute, blob);
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SuppressWarnings({ "rawtypes" })
 	void ingestCustomKey(IMap map, IMap[] relevantMaps, byte[] blob) {
 		for (int i = 0; i < count; i++) {
 			String sessionId = UUID.randomUUID().toString();
 			String attribute = "attr" + i;
-			CustomKey key = new CustomKey(sessionId, attribute);
-			map.put(key, blob);
-			for (IMap rmap : relevantMaps) {
-				rmap.put(key, blob);
-			}
+			setCustomKey(map, relevantMaps, sessionId, attribute, blob);
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SuppressWarnings({ "rawtypes" })
 	void ingestPartitionAwareyKey(IMap map, IMap[] relevantMaps, byte[] blob) {
 		for (int i = 0; i < count; i++) {
 			String sessionId = UUID.randomUUID().toString();
 			String attribute = "attr" + i;
-			PartitionAwareKey key = new PartitionAwareKey(sessionId, attribute);
-			map.put(key, blob);
-			for (IMap rmap : relevantMaps) {
-				rmap.put(key, blob);
-			}
+			setPartitionAwareyKey(map, relevantMaps, sessionId, attribute, blob);
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	void ingestStringKey(IMap map, IMap[] relevantMaps, byte[] blob) {
+	@SuppressWarnings({ "rawtypes" })
+	void ingestStringKey_SessionId_Postfix(IMap map, IMap[] relevantMaps, byte[] blob) {
 		for (int i = 0; i < count; i++) {
 			String sessionId = UUID.randomUUID().toString();
 			String attribute = "attr" + i;
-			String key = attribute + "@" + sessionId;
-			map.put(key, blob);
-			for (IMap rmap : relevantMaps) {
-				rmap.put(key, blob);
-			}
+			setStringKey_Postfix(map, relevantMaps, sessionId, attribute, blob);
+		}
+	}
+
+	@SuppressWarnings({ "rawtypes" })
+	void ingestStringKey_SessionId_Prefix(IMap map, IMap[] relevantMaps, byte[] blob) {
+		for (int i = 0; i < count; i++) {
+			String sessionId = UUID.randomUUID().toString();
+			String attribute = "attr" + i;
+			setStringKey_Prefix(map, relevantMaps, sessionId, attribute, blob);
 		}
 	}
 
@@ -144,7 +455,8 @@ public class SessionExpirationTestClient {
 				SessionExpirationTestClient.class.getName());
 		writeLine();
 		writeLine("NAME");
-		writeLine("   " + executableName + " - Ingest mock data into the specified maps for testing the session expiration plugin, "
+		writeLine("   " + executableName
+				+ " - Ingest mock data into the specified maps for testing the session expiration plugin, "
 				+ SessionExpirationService.class.getName());
 		writeLine();
 		writeLine("SYNOPSIS");
@@ -173,6 +485,30 @@ public class SessionExpirationTestClient {
 		writeLine("   -count count");
 		writeLine("             Number of entries to ingest. If not specified, defaults to 100");
 		writeLine();
+		writeLine("   -entry entry_type");
+		writeLine("             Entry type. INGEST for ingesting data, PUT for entering a single entry,");
+		writeLine("             RESET for resetting idle timeout for a single entry. PUT and RESET require");
+		writeLine("             session ID and attribute. Use '-session' and '-attribute' to sepcify them.");
+		writeLine("");
+		writeLine("   -session session_ID");
+		writeLine("             Session ID that is part of the composite key");
+		writeLine("");
+		writeLine("   -attribute attribute");
+		writeLine("             Attribute that is part of the composite key");
+		writeLine("");
+		writeLine("   -postfix true|false");
+		writeLine("             true to set session ID as postfix in building keys; false to set session ID as");
+		writeLine("             prefix. This option applies to the STRING type only. Postfix allows data affinity by");
+		writeLine("             session ID but the predicate execution latency can be very high. Prefix provides");
+		writeLine("             session ID. Note that if postfix is enabled, then it must also be enabled in the");
+		writeLine("             member configuration file by setting the following property.");
+		writeLine("                hazelcast.addon.cluster.expiration.string-key.postfix.enabled");
+		writeLine("             Default: false");
+		writeLine("");
+		writeLine("   -metadata true|false");
+		writeLine("             If true SessionMetadata is used. Any other value is false. This option requires");
+		writeLine("             the entry type of PUT, RESET, or GET. Default: false");
+		writeLine();
 		writeLine("EXAMPLES");
 		writeLine("   # INTERFACE: Ingest InterfaceKey that implements ISessionId into");
 		writeLine("   #            smki_EN01, mki1_EN01, mki2_EN02");
@@ -199,12 +535,47 @@ public class SessionExpirationTestClient {
 		writeLine("   # config file. The default delimiter is '@' and the session ID is the last part of the key.");
 		writeLine("   ./" + executableName + " -type STRING -primary smks_EN01 -relevant mks1_EN01,mks2_EN01");
 		writeLine();
+		writeLine("   # STRING: Ingest String keys into");
+		writeLine("   #         smkn_EN01, mkn_EN01, mkn2_EN02");
+		writeLine("   # These maps have been configured with max idle timeout without the plugin.");
+		writeLine("   # Run this command to compare ingestion performance.");
+		writeLine("   ./" + executableName + " -type STRING -primary smkn_EN01 -relevant mkn1_EN01,mkn2_EN01");
+		writeLine();
 		writeLine("   # OBJECT: Ingest objects (ObjectKey) with the getSessionId() method into");
 		writeLine("   #         mkp_session_web_session_fi_session_id_mapping_EN0,");
 		writeLine("   #         mmkp_session_fi_session_data_EN01,");
 		writeLine("   #         mkp_session_application_data_EN0");
 		writeLine("   # The key property, sessionId, is specified in the cluster config file.");
-		writeLine("   ./test_session_ingestion -type OBJECT -primary mkp_session_web_session_fi_session_id_mapping_EN01 -relevant mkp_session_fi_session_data_EN01,mkp_session_application_data_EN01");
+		writeLine(
+				"   ./test_session_ingestion -type OBJECT -primary mkp_session_web_session_fi_session_id_mapping_EN01 -relevant mkp_session_fi_session_data_EN01,mkp_session_application_data_EN01");
+		writeLine();
+		writeLine("   # INTERFACE PUT: Put a single entry to both primary and relevant maps.");
+		writeLine("   ./" + executableName
+				+ " -type INTERFACE -primary smki_EN01 -relevant mki1_EN01,mki2_EN01 -entry PUT -session s1 -attribute a1");
+		writeLine();
+		writeLine("   # INTERFACE RESET: Reset a single entry by writing to the primary map.");
+		writeLine("   ./" + executableName
+				+ " -type INTERFACE -primary smki_EN01 -relevant mki1_EN01,mki2_EN01 -entry RESET -session s1 -attribute a1");
+		writeLine();
+		writeLine(
+				"   # INTERFACE GET: Get a single entry from the primary map. This call resets the primary map only.");
+		writeLine("   #                Relevant maps are not reset.");
+		writeLine("   ./" + executableName
+				+ " -type INTERFACE -primary smki_EN01 -relevant mki1_EN01,mki2_EN01 -entry GET -session s1 -attribute a1");
+		writeLine();
+		writeLine("   # STRING METADATA PUT: Put a single entry to both primary and relevant maps.");
+		writeLine("   ./" + executableName
+				+ " -type STRING -primary smks_EN01 -relevant mks1_EN01,mks2_EN01 -entry PUT -session s1 -attribute a1 -metadata true");
+		writeLine();
+		writeLine("   # STRING METADATA RESET: Reset a single entry by writing to the primary map.");
+		writeLine("   ./" + executableName
+				+ " -type STRING -primary smks_EN01 -relevant mks1_EN01,mks2_EN01 -entry RESET -session s1 -attribute a1 -metadata true");
+		writeLine();
+		writeLine(
+				"   # STRING METADATA GET: Get a single entry from the primary map. This call resets the primary map only.");
+		writeLine("   #                Relevant maps are not reset.");
+		writeLine("   ./" + executableName
+				+ " -type INTERFACE -primary smki_EN01 -relevant mki1_EN01,mki2_EN01 -entry GET -session s1 -attribute a1 -metadata true");
 		writeLine();
 	}
 
@@ -220,6 +591,12 @@ public class SessionExpirationTestClient {
 		String keyTypeStr = "STRING";
 		String primaryMapName = null;
 		String relevantMapNames = null;
+		String sessionId = null;
+		String attribute = null;
+		String entry = null;
+		EntryType entryType = EntryType.INGEST;
+		boolean isMetadata = false;
+		boolean isPostfix = false;
 		int count = 100;
 		String arg;
 		for (int i = 0; i < args.length; i++) {
@@ -238,6 +615,39 @@ public class SessionExpirationTestClient {
 			} else if (arg.startsWith("-relevant")) {
 				if (i < args.length - 1) {
 					relevantMapNames = args[++i].trim();
+				}
+			} else if (arg.startsWith("-entry")) {
+				if (i < args.length - 1) {
+					entry = args[++i].trim();
+					if (entry.equalsIgnoreCase("put")) {
+						entryType = EntryType.PUT;
+					} else if (entry.equalsIgnoreCase("reset")) {
+						entryType = EntryType.RESET;
+					} else if (entry.equalsIgnoreCase("get")) {
+						entryType = EntryType.GET;
+					} else {
+						System.err.println("ERROR: Invalid entry type [" + entry
+								+ "]. Valid values are [put, reset, get]. Command aborted.");
+						System.exit(1);
+					}
+				}
+			} else if (arg.startsWith("-session")) {
+				if (i < args.length - 1) {
+					sessionId = args[++i].trim();
+				}
+			} else if (arg.startsWith("-attribute")) {
+				if (i < args.length - 1) {
+					attribute = args[++i].trim();
+				}
+			} else if (arg.startsWith("-postfix")) {
+				if (i < args.length - 1) {
+					String prefix = args[++i].trim();
+					isPostfix = prefix.equalsIgnoreCase("true");
+				}
+			} else if (arg.startsWith("-metadata")) {
+				if (i < args.length - 1) {
+					String metadata = args[++i].trim();
+					isMetadata = metadata.equalsIgnoreCase("true");
 				}
 			} else if (arg.startsWith("-count")) {
 				if (i < args.length - 1) {
@@ -271,10 +681,29 @@ public class SessionExpirationTestClient {
 			System.exit(4);
 		}
 
+		switch (entryType) {
+		case PUT:
+		case RESET:
+		case GET:
+			if (sessionId == null) {
+				System.err.println(
+						"ERROR: Session ID not specified. Use '-session' to specify session ID. Command aborted.");
+				System.exit(5);
+			}
+			if (attribute == null) {
+				System.err.println(
+						"ERROR: Attribute not specified. Use '-attribute' to specify attribute. Command aborted.");
+				System.exit(5);
+			}
+			break;
+		default:
+			break;
+		}
+
 		String[] relevantMapNameArray = relevantMapNames.split(",");
 		SessionExpirationTestClient client = new SessionExpirationTestClient(keyType, count, primaryMapName,
-				relevantMapNameArray);
-		client.ingestData();
+				relevantMapNameArray, entryType, sessionId, attribute);
+		client.ingestData(isMetadata, isPostfix);
 		client.shutdown();
 	}
 

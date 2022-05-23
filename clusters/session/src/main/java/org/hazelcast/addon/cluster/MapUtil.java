@@ -3,6 +3,7 @@ package org.hazelcast.addon.cluster;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.hazelcast.cluster.Member;
@@ -25,6 +26,23 @@ public class MapUtil {
 	private static int[] partitionIdsToKeys;
 
 	/**
+	 * Reads back all keys found by applying the specified predicate on the local
+	 * map key set. This method is particularly useful for resetting the idle
+	 * timeout of the found keys. Reads are done on the specified map and not the
+	 * local map.
+	 * 
+	 * @param predicate Predicate to execute on the local keys.
+	 */
+	public static void readMemberAllKeySet(IMap map, Predicate predicate) {
+		// Keys must be read individually in order to reset the idle timeout.
+		// map.getAll() does not support idle timeout reset.
+		Set keySet = map.localKeySet(predicate);
+		for (Object key : keySet) {
+			map.get(key);
+		}
+	}
+
+	/**
 	 * Removes all keys found by applying the specified predicate on the local map
 	 * key set.
 	 * 
@@ -36,14 +54,14 @@ public class MapUtil {
 	public static void removeMemberAllKeySet(IMap map, Predicate predicate) {
 		Set keySet = map.localKeySet(predicate);
 		for (Object key : keySet) {
-			map.remove(key);
+			map.delete(key);
 		}
 	}
 
 	/**
 	 * Removes all entries in the local member partitions that match the specified
-	 * predicate. This is an expensive operation as it executes the predicate on each
-	 * primary partition. If the predicate is for keys, then use
+	 * predicate. This is an expensive operation as it executes the predicate on
+	 * each primary partition. If the predicate is for keys, then use
 	 * {@link #removeMemberAllKeySet(IMap, Predicate)} instead for better
 	 * performance.
 	 * 

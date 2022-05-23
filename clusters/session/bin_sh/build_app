@@ -27,12 +27,16 @@ fi
 # Compile
 pushd $CLUSTER_DIR > /dev/null 2>&1
 mvn package
+cp lib/session-expiration-service-*.jar $PADOGRID_WORKSPACE/plugins/
 popd > /dev/null 2>&1
 
-# Change schema version to 5 if Hazelcast major version is 5
+# Change schema version to the current cluster version
 if [ $HAZELCAST_MAJOR_VERSION_NUMBER -eq 5 ]; then
   sed -i${__SED_BACKUP} 's/hazelcast-config-4.0.xsd/hazelcast-config-5.0.xsd/' $ETC_DIR/hazelcast.xml
-  echo "+ etc/hazelcast.xml schema version changed from 4.0 to 5.0."
+  echo "+ etc/hazelcast.xml schema version changed to 5.0."
+elif [ $HAZELCAST_MAJOR_VERSION_NUMBER -eq 4 ]; then
+  sed -i${__SED_BACKUP} 's/hazelcast-config-5.0.xsd/hazelcast-config-4.0.xsd/' $ETC_DIR/hazelcast.xml
+  echo "+ etc/hazelcast.xml schema version changed to 4.0."
 fi
 
 echo "Build complete."

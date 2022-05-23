@@ -97,10 +97,10 @@
 	<management-center scripting-enabled="true" />
 
 	<listeners>
-		<!-- org.hazelcast.addon.cluster.expiration.SessionExpirationServiceInitializer 
+		<!-- org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationServiceInitializer_SessionMetadata_Get 
 			is invoked during bootstrap to initialize SessionExpirationService. -->
 		<listener>
-			org.hazelcast.addon.cluster.expiration.SessionExpirationServiceInitializer
+			org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationServiceInitializer_SessionMetadata_Get
 		</listener>
 	</listeners>
 
@@ -147,18 +147,12 @@
 		<time-to-live-seconds>3600</time-to-live-seconds>
 		<max-idle-seconds>5</max-idle-seconds>
 		<entry-listeners>
-			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+			<entry-listener include-value="true">org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationListener_SessionMetadata_Get</entry-listener>
 		</entry-listeners>
 	</map>
 	<map name="mki*">
 		<time-to-live-seconds>3600</time-to-live-seconds>
-		<indexes>
-			<index type="HASH">
-				<attributes>
-					<attribute>__key.sessionId</attribute>
-				</attributes>
-			</index>
-		</indexes>
+		<max-idle-seconds>11</max-idle-seconds>
 	</map>
 
 	<!-- OBJECT -->
@@ -166,18 +160,12 @@
 		<time-to-live-seconds>3600</time-to-live-seconds>
 		<max-idle-seconds>5</max-idle-seconds>
 		<entry-listeners>
-			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+			<entry-listener include-value="true">org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationListener_SessionMetadata_Get</entry-listener>
 		</entry-listeners>
 	</map>
 	<map name="mko*">
 		<time-to-live-seconds>3600</time-to-live-seconds>
-		<indexes>
-			<index type="HASH">
-				<attributes>
-					<attribute>__key.sessionId</attribute>
-				</attributes>
-			</index>
-		</indexes>
+		<max-idle-seconds>11</max-idle-seconds>
 	</map>
 
 	<!-- CUSTOM -->
@@ -185,18 +173,12 @@
 		<time-to-live-seconds>3600</time-to-live-seconds>
 		<max-idle-seconds>5</max-idle-seconds>
 		<entry-listeners>
-			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+			<entry-listener include-value="true">org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationListener_SessionMetadata_Get</entry-listener>
 		</entry-listeners>
 	</map>
 	<map name="mkc*">
 		<time-to-live-seconds>3600</time-to-live-seconds>
-		<indexes>
-			<index type="HASH">
-				<attributes>
-					<attribute>__key.sessionId</attribute>
-				</attributes>
-			</index>
-		</indexes>
+		<max-idle-seconds>11</max-idle-seconds>
 	</map>
 
 	<!-- PARTITION_AWARE -->
@@ -204,7 +186,7 @@
 		<time-to-live-seconds>3600</time-to-live-seconds>
 		<max-idle-seconds>5</max-idle-seconds>
 		<entry-listeners>
-			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+			<entry-listener include-value="true">org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationListener_SessionMetadata_Get</entry-listener>
 		</entry-listeners>
 		<partition-strategy>
 			com.hazelcast.partition.strategy.StringAndPartitionAwarePartitioningStrategy
@@ -212,13 +194,7 @@
 	</map>
 	<map name="mkp*">
 		<time-to-live-seconds>3600</time-to-live-seconds>
-		<indexes>
-			<index type="HASH">
-				<attributes>
-					<attribute>__key.partitionKey</attribute>
-				</attributes>
-			</index>
-		</indexes>
+		<max-idle-seconds>11</max-idle-seconds>
 	</map>
 
 	<!-- STRING -->
@@ -226,7 +202,7 @@
 		<time-to-live-seconds>3600</time-to-live-seconds>
 		<max-idle-seconds>5</max-idle-seconds>
 		<entry-listeners>
-			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
+			<entry-listener include-value="true">org.hazelcast.addon.cluster.expiration.metadata.SessionExpirationListener_SessionMetadata_Get</entry-listener>
 		</entry-listeners>
 		<partition-strategy>
 			com.hazelcast.partition.strategy.StringAndPartitionAwarePartitioningStrategy
@@ -234,36 +210,14 @@
 	</map>
 	<map name="mks*">
 		<time-to-live-seconds>3600</time-to-live-seconds>
+		<max-idle-seconds>11</max-idle-seconds>
 	</map>
-
-	<!-- OBJECT -->
-	<map name="mkp_session_web_session_fi_session_id_mapping_*">
-		<time-to-live-seconds>3600</time-to-live-seconds>
-		<max-idle-seconds>5</max-idle-seconds>
-		<entry-listeners>
-			<entry-listener include-value="false">org.hazelcast.addon.cluster.expiration.SessionExpirationListener</entry-listener>
-		</entry-listeners>
-	</map>
-
-	<!-- Index relevant maps for better performance -->
-	<map name="mkp_session_fi_session_data_*">
-		<indexes>
-			<index type="HASH">
-				<attributes>
-					<attribute>__key.sessionId</attribute>
-				</attributes>
-			</index>
-		</indexes>
-	</map>
-
-	<!-- Index relevant maps for better performance -->
-	<map name="mkp_session_application_data_*">
-		<indexes>
-			<index type="HASH">
-				<attributes>
-					<attribute>__key.sessionId</attribute>
-				</attributes>
-			</index>
-		</indexes>
-	</map>
+	
+	<serialization>
+		<data-serializable-factories>
+			<data-serializable-factory factory-id="1010">
+				org.hazelcast.addon.cluster.expiration.metadata.ExpirationDataSerializableFactory
+			</data-serializable-factory>
+		</data-serializable-factories>
+	</serialization>
 </hazelcast>
