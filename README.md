@@ -82,7 +82,7 @@ if (sessionId.length() != 0) {
 
 ## Installation Steps
 
-Run the `session` cluster's `build_app` script which sets the correct Hazelcast XML schema version in the `etc/hazelcast.xml` file. This step is not necessary if your workspace is running Hazelcast 4.x.
+Run the `session` cluster's `build_app` script which builds the expiration plugin jar packages and sets the correct Hazelcast XML schema version in the `etc/hazelcast.xml` file. It places the plugin jars in the workspace `plugins` directory.
 
 ```bash
 switch_cluster session/bin_sh
@@ -170,6 +170,8 @@ There are three (3) distinctive settings that must be included in the Hazelcast 
 | hazelcast.addon.cluster.expiration.tag | Tag used as a prefix to each log message and a part of JMX object name. | SessionExpirationService |
 | hazelcast.addon.cluster.expiration.jmx-use-hazelcast-object-name | If true, then the standard Hazelcast JMX object name is registered for the session expiration service. Hazelcast metrics are registered with the header “com.hazelcast” and “type=Metrics”. If false or unspecified, then object name is registered with the header “org.hazelcast.addon” and “type=SessionExpirationService”. | false |
 | hazelcast.addon.cluster.expiration.key.delimiter | Delimiter that separates key string and the sessionID. The sessionID is always at the tail end of the string value. | @ |
+| hazelcast.addon.cluster.expiration.queue.drain-size	| Property for setting the expiration drain size. Each expiration event is placed in a blocking queue that is drained by a separate consumer thread to process them. The consumer thread drains the queue based on this value and processes the expiration events in a batch at a time to provide better performance. Note that a large drain size will throw stack overflow exceptions for KeyType.STRING which ends up building lengthy OR predicates with LIKE conditions. Hazelcast appears to have undocumented limitations on lengthy predicates. |	100 |
+| hazelcast.addon.cluster.expiration.string-key.postfix.enabled	| Property for enabling or disabling session ID postfix for String keys.|	false |
 | hazelcast.addon.cluster.expiration.session. | Property prefix for specifying a session map and the relevant maps. | N/A |
 | hazelcast.addon.cluster.expiration.session.foo%TAG%yong | Primary map name that begins with "foo" and ends with "yong" with the pattern matcher %TAG% in between. This property's value must be a comma separated list of relevant map names with zero or more %TAG% and optional regex. See examples below. | N/A |
 | hazelcast.addon.cluster.expiration.session.foo%TAG%yong.key.type | Key type. Valid types are CUSTOM, INTERFACE, OBJECT, PARTITION_AWARE, and STRING. | STRING |
