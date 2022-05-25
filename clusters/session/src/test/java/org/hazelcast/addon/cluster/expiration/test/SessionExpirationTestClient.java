@@ -510,72 +510,75 @@ public class SessionExpirationTestClient {
 		writeLine("             the entry type of PUT, RESET, or GET. Default: false");
 		writeLine();
 		writeLine("EXAMPLES");
-		writeLine("   # INTERFACE: Ingest InterfaceKey that implements ISessionId into");
-		writeLine("   #            smki_EN01, mki1_EN01, mki2_EN02");
+		writeLine("   # [1] INTERFACE: Ingest InterfaceKey that implements ISessionId into");
+		writeLine("   #                smki_EN01, mki1_EN01, mki2_EN02");
 		writeLine("   ./" + executableName + " -type INTERFACE -primary smki_EN01 -relevant mki1_EN01,mki2_EN01");
 		writeLine();
-		writeLine("   # OBJECT: Ingest objects (ObjectKey) with the getSessionId() method into");
-		writeLine("   #         smko_EN01, mko1_EN01, mko2_EN02");
-		writeLine("   # The key property, sessionId, is specified in the cluster config file.");
+		writeLine("   # [2] OBJECT: Ingest objects (ObjectKey) with the getSessionId() method into");
+		writeLine("   #             smko_EN01, mko1_EN01, mko2_EN02");
+		writeLine("   #     The key property, sessionId, is specified in the cluster config file.");
 		writeLine("   ./test_session_ingestion -type OBJECT -primary smko_EN01 -relevant mko1_EN01,mko2_EN01");
 		writeLine();
-		writeLine("   # CUSTOM: Ingest CustomKey objects into");
-		writeLine("   #         smkc_EN01, mkc_EN01, mkc2_EN02");
-		writeLine("   # SessionID is extracted by CustomPrediate specified in the cluster config file.");
+		writeLine("   #[3]  CUSTOM: Ingest CustomKey objects into");
+		writeLine("   #             smkc_EN01, mkc_EN01, mkc2_EN02");
+		writeLine("   #     SessionID is extracted by CustomPrediate specified in the cluster config file.");
 		writeLine("   ./" + executableName + " -type CUSTOM -primary smkc_EN01 -relevant mkc1_EN01,mkc2_EN01");
 		writeLine();
-		writeLine("   # PARTITION_AWARE: Ingest PartitionAwareKey that implements PartitionAware into");
-		writeLine("   #        smkp_EN01, mkp1_EN01, mkp2_EN02");
-		writeLine("   #        It uses PartitionAware.getPartionKey() as the session ID.");
+		writeLine("   # [4] PARTITION_AWARE: Ingest PartitionAwareKey that implements PartitionAware into");
+		writeLine("   #                     smkp_EN01, mkp1_EN01, mkp2_EN02");
+		writeLine("   #     It uses PartitionAware.getPartionKey() as the session ID.");
 		writeLine("   ./test_session_ingestion -type PARTITION_AWARE -primary smkp_EN01 -relevant mkp1_EN01,mkp2_EN01");
 		writeLine();
-		writeLine("   # STRING: Ingest String keys into");
-		writeLine("   #         smks_EN01, mks_EN01, mks2_EN02");
-		writeLine("   # SessionID is extracted from key objects using the specified delimiter in the cluster");
-		writeLine("   # config file. The default delimiter is '@' and the session ID is the last part of the key.");
+		writeLine("   # [5] STRING: Ingest String keys into");
+		writeLine("   #             smks_EN01, mks_EN01, mks2_EN02");
+		writeLine("   #     SessionID is extracted from key objects using the specified delimiter in the cluster");
+		writeLine("   #     config file. The default delimiter is '@' and the session ID is the last part of the key.");
 		writeLine("   ./" + executableName + " -type STRING -primary smks_EN01 -relevant mks1_EN01,mks2_EN01");
 		writeLine();
-		writeLine("   # STRING: Ingest String keys into");
-		writeLine("   #         smkn_EN01, mkn_EN01, mkn2_EN02");
-		writeLine("   # These maps have been configured with max idle timeout without the plugin.");
-		writeLine("   # Run this command to compare ingestion performance.");
+		writeLine("   # [6] STRING: Ingest String keys into");
+		writeLine("   #             smkn_EN01, mkn_EN01, mkn2_EN02");
+		writeLine("   #     These maps have been configured with max idle timeout without the plugin.");
+		writeLine("   #     Run this command to compare ingestion performance.");
 		writeLine("   ./" + executableName + " -type STRING -primary smkn_EN01 -relevant mkn1_EN01,mkn2_EN01");
 		writeLine();
-		writeLine("   # OBJECT: Ingest objects (ObjectKey) with the getSessionId() method into");
-		writeLine("   #         mkp_session_web_session_fi_session_id_mapping_EN0,");
-		writeLine("   #         mmkp_session_fi_session_data_EN01,");
-		writeLine("   #         mkp_session_application_data_EN0");
-		writeLine("   # The key property, sessionId, is specified in the cluster config file.");
+		writeLine("   # [7] OBJECT: Ingest objects (ObjectKey) with the getSessionId() method into");
+		writeLine("   #             mkp_session_web_session_fi_session_id_mapping_EN0,");
+		writeLine("   #             mmkp_session_fi_session_data_EN01,");
+		writeLine("   #             mkp_session_application_data_EN0");
+		writeLine("   #     The key property, sessionId, is specified in the cluster config file.");
 		writeLine(
 				"   ./test_session_ingestion -type OBJECT -primary mkp_session_web_session_fi_session_id_mapping_EN01 -relevant mkp_session_fi_session_data_EN01,mkp_session_application_data_EN01");
 		writeLine();
-		writeLine("   # INTERFACE PUT: Put a single entry to both primary and relevant maps.");
+		writeLine("   # [8] INTERFACE PUT: Put a single entry to both primary and relevant maps.");
 		writeLine("   ./" + executableName
 				+ " -type INTERFACE -primary smki_EN01 -relevant mki1_EN01,mki2_EN01 -entry PUT -session s1 -attribute a1");
 		writeLine();
-		writeLine("   # INTERFACE RESET: Reset a single entry by writing to the primary map.");
+		writeLine("   # [9] INTERFACE RESET: Reset a single entry by writing to the primary map.");
 		writeLine("   ./" + executableName
 				+ " -type INTERFACE -primary smki_EN01 -relevant mki1_EN01,mki2_EN01 -entry RESET -session s1 -attribute a1");
 		writeLine();
 		writeLine(
-				"   # INTERFACE GET: Get a single entry from the primary map. This call resets the primary map only.");
-		writeLine("   #                Relevant maps are not reset.");
+				"   # [10] INTERFACE GET: Get a single entry from the primary map. This call resets the primary map only.");
+		writeLine("   #                   Relevant maps are not reset.");
 		writeLine("   ./" + executableName
 				+ " -type INTERFACE -primary smki_EN01 -relevant mki1_EN01,mki2_EN01 -entry GET -session s1 -attribute a1");
 		writeLine();
-		writeLine("   # STRING METADATA PUT: Put a single entry to both primary and relevant maps.");
+		writeLine("   # [11] STRING METADATA PUT: Put a single entry to both primary and relevant maps.");
 		writeLine("   ./" + executableName
 				+ " -type STRING -primary smks_EN01 -relevant mks1_EN01,mks2_EN01 -entry PUT -session s1 -attribute a1 -metadata true");
 		writeLine();
-		writeLine("   # STRING METADATA RESET: Reset a single entry by writing to the primary map.");
+		writeLine("   # [12] STRING METADATA RESET: Reset a single entry by writing to the primary map.");
 		writeLine("   ./" + executableName
 				+ " -type STRING -primary smks_EN01 -relevant mks1_EN01,mks2_EN01 -entry RESET -session s1 -attribute a1 -metadata true");
 		writeLine();
 		writeLine(
-				"   # STRING METADATA GET: Get a single entry from the primary map. This call resets the primary map only.");
+				"   # [13] STRING METADATA GET: Get a single entry from the primary map. This call resets the primary map only.");
 		writeLine("   #                Relevant maps are not reset.");
 		writeLine("   ./" + executableName
 				+ " -type INTERFACE -primary smki_EN01 -relevant mki1_EN01,mki2_EN01 -entry GET -session s1 -attribute a1 -metadata true");
+		writeLine();
+		writeLine("NOTES");
+		writeLine("   - To test session metadata run [11] and repeatedly run [12].");
 		writeLine();
 	}
 
