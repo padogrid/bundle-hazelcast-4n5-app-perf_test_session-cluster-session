@@ -1,5 +1,5 @@
 # Session Expiration Management Plugin
-This bundle provides a plugin that expires session objects in a given map and their relevant entries in other Hazelcast maps.
+This bundle provides a plugin that expires session objects in a given map and their relevant entries in other Hazelcast maps. The plugin also supports session expirations over the WAN (See [bundle-hazelcast-4n5-cluster-session-wan](https://github.com/padogrid/bundle-hazelcast-4n5-cluster-session-wan).)
 
 ## Installing Bundle
 
