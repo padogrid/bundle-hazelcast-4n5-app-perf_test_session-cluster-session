@@ -19,6 +19,7 @@ import com.hazelcast.map.IMap;
  * @author dpark
  *
  */
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public class SessionExpirationTestClient {
 
 	public final static String PROPERTY_executableName = "executable.name";
@@ -221,178 +222,134 @@ public class SessionExpirationTestClient {
 
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	Object getInterfaceKey(IMap map, String sessionId, String attribute) {
 		InterfaceKey key = new InterfaceKey(sessionId, attribute);
 		return map.get(key);
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	Object getObjectKey(IMap map, String sessionId, String attribute) {
 		ObjectKey key = new ObjectKey(sessionId, attribute);
 		return map.get(key);
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	Object getCustomKey(IMap map, String sessionId, String attribute) {
 		CustomKey key = new CustomKey(sessionId, attribute);
 		return map.get(key);
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	Object getPartitionAwareyKey(IMap map, String sessionId, String attribute) {
 		PartitionAwareKey key = new PartitionAwareKey(sessionId, attribute);
 		return map.get(key);
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	Object getStringKey_SessionId_Postfix(IMap map, String sessionId, String attribute) {
 		String key = attribute + "@" + sessionId;
 		return map.get(key);
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	Object getStringKey_SessionId_Prefix(IMap map, String sessionId, String attribute) {
 		String key = sessionId + "@" + attribute;
 		return map.get(key);
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void resetInterfaceKey(IMap map, String sessionId, String attribute, byte[] blob) {
 		InterfaceKey key = new InterfaceKey(sessionId, attribute);
 		map.set(key, blob);
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void resetObjectKey(IMap map, String sessionId, String attribute, byte[] blob) {
 		ObjectKey key = new ObjectKey(sessionId, attribute);
 		map.set(key, blob);
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void resetCustomKey(IMap map, String sessionId, String attribute, byte[] blob) {
 		CustomKey key = new CustomKey(sessionId, attribute);
 		map.set(key, blob);
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void resetPartitionAwareyKey(IMap map, String sessionId, String attribute, byte[] blob) {
 		PartitionAwareKey key = new PartitionAwareKey(sessionId, attribute);
 		map.set(key, blob);
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void resetStringKey_SessionId_Postfix(IMap map, String sessionId, String attribute, byte[] blob) {
 		String key = attribute + "@" + sessionId;
 		map.set(key, blob);
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void resetStringKey_SessionId_Prefix(IMap map, String sessionId, String attribute, byte[] blob) {
 		String key = sessionId + "@" + attribute;
 		map.set(key, blob);
 	}
-
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	void resetStringKey_SessionMap_SessionId_Postfix(IMap map, IMap[] relevantMaps, String sessionId,
-			String attribute) {
-		String key = attribute + "@" + sessionId;
+	
+	SessionMetadata createSessionMetadata(IMap[] relevantMaps, Object key) {
 		SessionMetadata sm = new SessionMetadata();
 		for (IMap rmap : relevantMaps) {
 			sm.addRelevantKey(rmap.getName(), key);
 		}
-		map.set(key, sm);
+		return sm;
+	}
+
+	void resetStringKey_SessionMap_SessionId_Postfix(IMap map, IMap[] relevantMaps, String sessionId,
+			String attribute) {
+		String key = attribute + "@" + sessionId;
+		map.set(key, createSessionMetadata(relevantMaps, key));
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void resetStringKey_SessionMap_SessionId_Prefix(IMap map, IMap[] relevantMaps, String sessionId, String attribute) {
 		String key = sessionId + "@" + attribute;
-		SessionMetadata sm = new SessionMetadata();
-		for (IMap rmap : relevantMaps) {
-			sm.addRelevantKey(rmap.getName(), key);
-		}
-		map.set(key, sm);
+		map.set(key, createSessionMetadata(relevantMaps, key));
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void setInterfaceKey(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
 		InterfaceKey key = new InterfaceKey(sessionId, attribute);
-		SessionMetadata sm = new SessionMetadata();
-		for (IMap rmap : relevantMaps) {
-			sm.addRelevantKey(rmap.getName(), key);
-		}
-		map.set(key, sm);
+		map.set(key, createSessionMetadata(relevantMaps, key));
 		for (IMap rmap : relevantMaps) {
 			rmap.set(key, blob);
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void setObjectKey(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
 		ObjectKey key = new ObjectKey(sessionId, attribute);
-		SessionMetadata sm = new SessionMetadata();
-		for (IMap rmap : relevantMaps) {
-			sm.addRelevantKey(rmap.getName(), key);
-		}
-		map.set(key, sm);
+		map.set(key, createSessionMetadata(relevantMaps, key));
 		for (IMap rmap : relevantMaps) {
 			rmap.set(key, blob);
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void setCustomKey(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
 		CustomKey key = new CustomKey(sessionId, attribute);
-		SessionMetadata sm = new SessionMetadata();
-		for (IMap rmap : relevantMaps) {
-			sm.addRelevantKey(rmap.getName(), key);
-		}
-		map.set(key, sm);
+		map.set(key, createSessionMetadata(relevantMaps, key));
 		for (IMap rmap : relevantMaps) {
 			rmap.set(key, blob);
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void setPartitionAwareyKey(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
 		PartitionAwareKey key = new PartitionAwareKey(sessionId, attribute);
-		SessionMetadata sm = new SessionMetadata();
-		for (IMap rmap : relevantMaps) {
-			sm.addRelevantKey(rmap.getName(), key);
-		}
-		map.set(key, sm);
+		map.set(key, createSessionMetadata(relevantMaps, key));
 		for (IMap rmap : relevantMaps) {
 			rmap.set(key, blob);
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void setStringKey_Postfix(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
 		String key = attribute + "@" + sessionId;
-		SessionMetadata sm = new SessionMetadata();
-		for (IMap rmap : relevantMaps) {
-			sm.addRelevantKey(rmap.getName(), key);
-		}
-		map.set(key, sm);
+		map.set(key, createSessionMetadata(relevantMaps, key));
 		for (IMap rmap : relevantMaps) {
 			rmap.set(key, blob);
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void setStringKey_Prefix(IMap map, IMap[] relevantMaps, String sessionId, String attribute, byte[] blob) {
 		String key = sessionId + "@" + attribute;
-		SessionMetadata sm = new SessionMetadata();
-		for (IMap rmap : relevantMaps) {
-			sm.addRelevantKey(rmap.getName(), key);
-		}
-		map.set(key, sm);
+		map.set(key, createSessionMetadata(relevantMaps, key));
 		for (IMap rmap : relevantMaps) {
 			rmap.set(key, blob);
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	void ingestInterfaceKey(IMap map, IMap[] relevantMaps, byte[] blob) {
 		for (int i = 0; i < count; i++) {
 			String sessionId = UUID.randomUUID().toString();
@@ -401,7 +358,6 @@ public class SessionExpirationTestClient {
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	void ingestObjectKey(IMap map, IMap[] relevantMaps, byte[] blob) {
 		for (int i = 0; i < count; i++) {
 			String sessionId = UUID.randomUUID().toString();
@@ -410,7 +366,6 @@ public class SessionExpirationTestClient {
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	void ingestCustomKey(IMap map, IMap[] relevantMaps, byte[] blob) {
 		for (int i = 0; i < count; i++) {
 			String sessionId = UUID.randomUUID().toString();
@@ -419,7 +374,6 @@ public class SessionExpirationTestClient {
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	void ingestPartitionAwareyKey(IMap map, IMap[] relevantMaps, byte[] blob) {
 		for (int i = 0; i < count; i++) {
 			String sessionId = UUID.randomUUID().toString();
@@ -428,7 +382,6 @@ public class SessionExpirationTestClient {
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	void ingestStringKey_SessionId_Postfix(IMap map, IMap[] relevantMaps, byte[] blob) {
 		for (int i = 0; i < count; i++) {
 			String sessionId = UUID.randomUUID().toString();
@@ -437,7 +390,6 @@ public class SessionExpirationTestClient {
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	void ingestStringKey_SessionId_Prefix(IMap map, IMap[] relevantMaps, byte[] blob) {
 		for (int i = 0; i < count; i++) {
 			String sessionId = UUID.randomUUID().toString();
