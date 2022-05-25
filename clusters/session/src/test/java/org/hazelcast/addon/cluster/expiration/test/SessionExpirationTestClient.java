@@ -49,7 +49,6 @@ public class SessionExpirationTestClient {
 		this.hzInstance = HazelcastClient.newHazelcastClient();
 	}
 
-	@SuppressWarnings("rawtypes")
 	void ingestData(boolean isMetadata, boolean isPostfix) {
 		IMap primaryMap = hzInstance.getMap(primaryMapName);
 		IMap[] relevantMaps = new IMap[relevantMapNames.length];
@@ -296,7 +295,6 @@ public class SessionExpirationTestClient {
 		map.set(key, createSessionMetadata(relevantMaps, key));
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void resetStringKey_SessionMap_SessionId_Prefix(IMap map, IMap[] relevantMaps, String sessionId, String attribute) {
 		String key = sessionId + "@" + attribute;
 		map.set(key, createSessionMetadata(relevantMaps, key));
