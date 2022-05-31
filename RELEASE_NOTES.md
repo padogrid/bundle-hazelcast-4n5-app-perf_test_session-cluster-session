@@ -1,8 +1,8 @@
 # Session Expiration Service Release Notes
 
 ©2022 Netcrest Technologies, LLC. All rights reserved.
-https://github.com/padogrid
-https://github.com/padogrid/bundle-hazelcast-4n5-cluster-session
+- https://github.com/padogrid
+- https://github.com/padogrid/bundle-hazelcast-4n5-cluster-session
 
 ## Version 1.0.2
 
@@ -13,7 +13,7 @@ https://github.com/padogrid/bundle-hazelcast-4n5-cluster-session
 - Added the [`SessionMetadata`](https://github.com/padogrid/bundle-hazelcast-4n5-cluster-session/blob/master/clusters/session/src/main/java/org/hazelcast/addon/cluster/expiration/metadata/SessionMetadata.java) option, which allows
 client applications to provide relevant keys instead of the plugin determining them. This option sigficantly reduces the load on the cluster and the overall latency.
 - The plugin fully supports sesson expirations over the WAN. This enables client applications to seamlessly failover to the secondary cluster with the session data fully intact, preventing session disruptions. 
-- [**bundle-hazelcast-4n5-cluster-session-wan**](https://github.com/padogrid/bundle-hazelcast-4n5-cluster-session-wan) is now available for testing this plugin in a WAN environment.
+- [*bundle-hazelcast-4n5-cluster-session-wan*](https://github.com/padogrid/bundle-hazelcast-4n5-cluster-session-wan) is now available for testing this plugin in a WAN environment.
 
 ## Version 1.0.1
 
