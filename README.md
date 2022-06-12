@@ -3,6 +3,8 @@ This bundle provides a plugin that expires session objects in a given map and th
 
 ## Installing Bundle
 
+![PadoGrid](https://github.com/padogrid/padogrid/raw/develop/images/padogrid-3d-16x16.png) [*Driven by PadoGrid*](https://github.com/padogrid)
+
 ```bash
 install_bundle -download bundle-hazelcast-4n5-app-perf_test_session-cluster-session
 ```
