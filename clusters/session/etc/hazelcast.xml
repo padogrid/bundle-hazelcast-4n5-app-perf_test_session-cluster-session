@@ -31,6 +31,8 @@
 			name="hazelcast.addon.cluster.expiration.jmx-use-hazelcast-object-name">true</property>
 		<property
 			name="hazelcast.addon.cluster.expiration.key.delimiter">@</property>
+		<!--  Expiration worker thread pool size. Default: 1 -->
+		<property name="hazelcast.addon.cluster.expiration.thread.pool-size">4</property>
 		<!-- Expiration queue drain size. For string keys, a large value can potentially 
 			throw stack overflow exceptions due to what appears to be Hazelcast LIKE 
 			predicate on OR operator limitations. Default: 100 -->
@@ -266,4 +268,15 @@
 			</index>
 		</indexes>
 	</map>
+	
+	<!-- Normal maps - no plugin -->
+	<map name="smkn_*">
+		<time-to-live-seconds>3600</time-to-live-seconds>
+		<max-idle-seconds>5</max-idle-seconds>
+	</map>
+	<map name="mkn*">
+		<time-to-live-seconds>3600</time-to-live-seconds>
+		<max-idle-seconds>5</max-idle-seconds>
+	</map>
+	
 </hazelcast>

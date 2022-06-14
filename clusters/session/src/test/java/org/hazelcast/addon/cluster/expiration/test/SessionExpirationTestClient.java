@@ -485,10 +485,10 @@ public class SessionExpirationTestClient {
 		writeLine("   #     config file. The default delimiter is '@' and the session ID is the last part of the key.");
 		writeLine("   ./" + executableName + " -type STRING -primary smks_EN01 -relevant mks1_EN01,mks2_EN01");
 		writeLine();
-		writeLine("   # [6] STRING: Ingest String keys into");
+		writeLine("   # [6] No Plugin: Ingest String keys into normal maps (no plugin)");
 		writeLine("   #             smkn_EN01, mkn_EN01, mkn2_EN02");
 		writeLine("   #     These maps have been configured with max idle timeout without the plugin.");
-		writeLine("   #     Run this command to compare ingestion performance.");
+		writeLine("   #     Run this command with any type, i.g., STRING, INTERFACE, etc., to compare ingestion performance.");
 		writeLine("   ./" + executableName + " -type STRING -primary smkn_EN01 -relevant mkn1_EN01,mkn2_EN01");
 		writeLine();
 		writeLine("   # [7] OBJECT: Ingest objects (ObjectKey) with the getSessionId() method into");

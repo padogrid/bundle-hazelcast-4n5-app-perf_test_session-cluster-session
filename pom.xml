@@ -6,12 +6,10 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>padogrid.addon</groupId>
-	<!-- @template: Enter your bundle name here -->
     <artifactId>bundle-hazelcast-4n5-cluster-session</artifactId>
 	<packaging>pom</packaging>
         <name>${project.artifactId}</name>
 	<version>1.0.0</version>
-	<!-- @template: Enter your bundle description -->
 	<description>Session expiration plugin</description>
 
 	<properties>

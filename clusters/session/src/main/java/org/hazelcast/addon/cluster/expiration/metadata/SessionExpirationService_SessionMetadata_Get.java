@@ -40,24 +40,25 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 
 	private ILogger logger = null;
 
-	private Consumer consumer;
-	private Thread consumerThread;
-	private BlockingQueue<SessionMetadata> queue = new LinkedBlockingQueue<SessionMetadata>();
+	private ThreadGroup workerThreadGroup;
+	private WorkerThread workerThreads[];
+	private LinkedBlockingQueue<SessionMetadata> workerQueues[];
 	private HazelcastInstance hazelcastInstance;
-
-	public HazelcastInstance getHazelcastInstance() {
-		return hazelcastInstance;
-	}
 
 	private String tag;
 	private String logPrefix;
 	private boolean isJmxEnabled;
 	private SessionExpirationServiceStatus status;
+	private boolean isJmxUseHazelcastObjectName;
+
+	// worker thread pool size
+	private int threadPoolSize = DEFAULT_EXPIRATION_THREAD_POOL_SIZE;
+
 	// queue drain size
 	private int queueDrainSize = DEFAULT_EXPIRATION_QUEUE_DRAIN_SIZE;
+
 	// Session ID as prefix or postfix. Default: prefix (for performance)
 	private boolean isPostfix = false;
-	private boolean isJmxUseHazelcastObjectName;
 
 	public final static SessionExpirationService_SessionMetadata_Get getExpirationService() {
 		return expirationService;
@@ -71,7 +72,7 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 	 * 
 	 * @param properties
 	 */
-	@SuppressWarnings("rawtypes")
+	@SuppressWarnings({ "unchecked" })
 	synchronized void initialize(Properties properties) {
 
 		// Get the first HazelcastInstance
@@ -84,7 +85,7 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 
 		// tag used for logging and JMX only. This tag is different from
 		// NAME_TAG which applies to SessionTag.
-		tag = properties.getProperty(PROPERTY_TAG, SessionExpirationService_SessionMetadata_Get.class.getSimpleName());
+		tag = properties.getProperty(PROPERTY_TAG, this.getClass().getSimpleName());
 		logPrefix = tag + ": ";
 
 		// queueDrainSize
@@ -94,7 +95,7 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 				queueDrainSize = Integer.parseInt(sizeStr);
 			} catch (Exception ex) {
 				logger.warning(logPrefix + ex.getMessage() + "[" + PROPERTY_EXPIRATION_QUEUE_DRAIN_SIZE + "=" + sizeStr
-						+ "]. Using the default value of " + DEFAULT_EXPIRATION_QUEUE_DRAIN_SIZE + " instead.");
+						+ "]. Using the default value of " + queueDrainSize + " instead.");
 			}
 		}
 
@@ -104,14 +105,33 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 		bool = properties.getProperty(JMX_USE_HAZELCAST_OBJECT_NAME, "false");
 		isJmxUseHazelcastObjectName = bool.equalsIgnoreCase("true");
 
-		// Start thread as daemon
-		consumer = new Consumer(queue);
-		consumerThread = new Thread(consumer, SessionExpirationService_SessionMetadata_Get.class.getSimpleName());
-		consumerThread.setDaemon(true);
-		consumerThread.start();
+		// Create thread pool
+		String threadPoolSizeStr = properties.getProperty(PROPERTY_EXPIRATION_THREAD_POOL_SIZE);
+		if (threadPoolSizeStr != null) {
+			try {
+				threadPoolSize = Integer.parseInt(threadPoolSizeStr);
+			} catch (Exception ex) {
+				logger.warning(logPrefix + ex.getMessage() + "[" + PROPERTY_EXPIRATION_THREAD_POOL_SIZE + "="
+						+ threadPoolSizeStr + "]. Using the default value of " + threadPoolSize + " instead.");
+			}
+		}
+		String threadGroupName = this.getClass().getSimpleName();
+		workerThreadGroup = new ThreadGroup(threadGroupName);
+		workerThreadGroup.setDaemon(true);
+		workerThreads = new WorkerThread[threadPoolSize];
+		workerQueues = new LinkedBlockingQueue[threadPoolSize];
+		for (int i = 0; i < threadPoolSize; i++) {
+			workerQueues[i] = new LinkedBlockingQueue<SessionMetadata>();
+			WorkerThread workerThread = new WorkerThread(workerThreadGroup,
+					"padogrid." + threadGroupName + "-" + (i + 1) /* thread name */, workerQueues[i]);
+			workerThread.start();
+			workerThreads[i] = workerThread;
+		}
 
 		if (logger != null) {
-			logger.info(logPrefix + this.getClass().getCanonicalName() + " started.");
+			logger.info(logPrefix + this.getClass().getCanonicalName() + " started: " + ", threadPoolSize="
+					+ threadPoolSize + ", queueDrainSize=" + queueDrainSize + ", isPostfix=" + isPostfix
+					+ ", isJmxUseHazelcastObjectName=" + isJmxUseHazelcastObjectName);
 		}
 
 		if (hazelcastInstance != null) {
@@ -142,11 +162,10 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 					type = "Metrics";
 				} else {
 					header = "org.hazelcast.addon";
-					type = SessionExpirationService_SessionMetadata_Get.class.getSimpleName();
+					type = this.getClass().getSimpleName();
 				}
-				objectName = new ObjectName(
-						header + ":name=" + SessionExpirationService_SessionMetadata_Get.class.getSimpleName()
-								+ ",instance=" + instanceName + ",type=" + type + ",tag=" + tag);
+				objectName = new ObjectName(header + ":name=SessionExpirationService"
+						+ ",instance=" + instanceName + ",type=" + type + ",tag=" + tag);
 				platformMBeanServer.registerMBean(status, objectName);
 				logger.info(logPrefix + SessionExpirationServiceStatusMBean.class.getSimpleName()
 						+ " registered: objectName=" + objectName.toString() + ", tag=" + tag);
@@ -159,6 +178,27 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 	}
 
 	/**
+	 * Returns the array index of the worker thread that has the smallest queue.
+	 */
+	private int getMinWorkerQueueIndex() {
+		int minIndex = 0;
+		LinkedBlockingQueue<SessionMetadata> minQueue = workerQueues[minIndex];
+		for (int i = 1; i < workerQueues.length; i++) {
+			if (minQueue.size() > workerQueues[i].size()) {
+				minIndex = i;
+			}
+		}
+		return minIndex;
+	}
+
+	/**
+	 * Returns the Hazelcast instance.
+	 */
+	public HazelcastInstance getHazelcastInstance() {
+		return hazelcastInstance;
+	}
+	
+	/**
 	 * Resets max-idle-time-seconds of all the entries from the configured maps that have
 	 * the matching session.
 	 * 
@@ -166,13 +206,15 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 	 * @param key            Key object containing the session ID.
 	 */
 	public void reset(SessionMetadata sm) {
-		if (consumerThread.isAlive() == false) {
-			return;
-		}
 		if (sm == null) {
 			return;
 		}
-		queue.offer(sm);
+//		int index = Math.abs(key.hashCode()) % workerThreads.length;
+		int index = getMinWorkerQueueIndex();
+		if (workerThreads[index].isAlive() == false) {
+			return;
+		}
+		workerQueues[index].offer(sm);
 		updateMBean();
 	}
 
@@ -182,8 +224,8 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 	 * least one session ID to be processed.
 	 */
 	public void terminate() {
-		if (consumer != null) {
-			consumer.terminate();
+		for (int i = 0; i < workerThreads.length; i++) {
+			workerThreads[i].terminate();
 		}
 	}
 
@@ -193,7 +235,12 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 	 * @return
 	 */
 	public int getQueueSize() {
-		return queue.size();
+		int totalSize = 0;
+		for (int i = 0; i < workerQueues.length; i++) {
+			totalSize += workerQueues[i].size();
+
+		}
+		return totalSize;
 	}
 
 	/**
@@ -203,7 +250,12 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 	 * empty queue.
 	 */
 	public boolean isTerminating() {
-		return consumer.isTerminating();
+		for (int i = 0; i < workerThreads.length; i++) {
+			if (workerThreads[i].isTerminating()) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -217,19 +269,24 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 	}
 
 	/**
-	 * {@linkplain Consumer} takes {@linkplain SessionInfo} objects from the
+	 * {@linkplain WorkerThread} takes {@linkplain SessionInfo} objects from the
 	 * blocking queue and expires session entries from the relevant maps.
 	 * 
 	 * @author dpark
 	 *
 	 */
-	class Consumer implements Runnable {
+	class WorkerThread extends Thread {
 
 		protected BlockingQueue<SessionMetadata> queue = null;
 		private boolean shouldRun = true;
 		private boolean isTerminated = false;
 
-		public Consumer(BlockingQueue<SessionMetadata> queue) {
+		public WorkerThread(ThreadGroup threadGroup, String threadName, BlockingQueue<SessionMetadata> queue) {
+			super(threadGroup, threadName);
+			this.queue = queue;
+		}
+
+		public WorkerThread(BlockingQueue<SessionMetadata> queue) {
 			this.queue = queue;
 		}
 
@@ -249,7 +306,7 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 						for (Map.Entry<String, Object> entry : set) {
 							String mapName = entry.getKey();
 							Object key = entry.getValue();
-							IMap<Object, Object> map = hazelcastInstance.getMap(mapName);
+							IMap<?, ?> map = hazelcastInstance.getMap(mapName);
 							map.get(key);
 						}
 					}
@@ -273,8 +330,8 @@ public class SessionExpirationService_SessionMetadata_Get implements SessionExpi
 		}
 
 		/**
-		 * Terminates the consumer thread. Upon termination, the blocking queue will be
-		 * cleared and the consumer thread is no longer usable. Note that it will not
+		 * Terminates the worker thread. Upon termination, the blocking queue will be
+		 * cleared and the worker thread is no longer usable. Note that it will not
 		 * terminate if the queue is empty. It will block until queue has at least one
 		 * session ID to be processed.
 		 */
