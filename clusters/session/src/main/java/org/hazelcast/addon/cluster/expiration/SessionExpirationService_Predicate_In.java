@@ -19,7 +19,6 @@ import javax.management.ObjectName;
 
 import org.hazelcast.addon.cluster.ClusterUtil;
 import org.hazelcast.addon.cluster.MapUtil;
-import org.hazelcast.addon.cluster.expiration.SessionExpirationService_Get.SessionInfo;
 
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
