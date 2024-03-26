@@ -3,7 +3,7 @@
 ---
 
 <!-- Platforms -->
-[![Host OS](https://github.com/padogrid/padogrid/wiki/images/padogrid-host-os.drawio.svg)](https://github.com/padogrid/padogrid/wiki/Platform-Host-OS) [![VM](https://github.com/padogrid/padogrid/wiki/images/padogrid-vm.drawio.svg)](https://github.com/padogrid/padogrid/wiki/Platform-VM) [![Docker](https://github.com/padogrid/padogrid/wiki/images/padogrid-docker.drawio.svg)](https://github.com/padogrid/padogrid/wiki/Platform-Docker) [![Kubernetes](https://github.com/padogrid/padogrid/wiki/images/padogrid-kubernetes.drawio.svg)](https://github.com/padogrid/padogrid/wiki/Platform-Kubernetes)
+[![PadoGrid 1.x](https://github.com/padogrid/padogrid/wiki/images/padogrid-padogrid-1.x.drawio.svg)](https://github.com/padogrid/padogrid/wiki/Platform-PadoGrid-1.x) [![Host OS](https://github.com/padogrid/padogrid/wiki/images/padogrid-host-os.drawio.svg)](https://github.com/padogrid/padogrid/wiki/Platform-Host-OS) [![VM](https://github.com/padogrid/padogrid/wiki/images/padogrid-vm.drawio.svg)](https://github.com/padogrid/padogrid/wiki/Platform-VM) [![Docker](https://github.com/padogrid/padogrid/wiki/images/padogrid-docker.drawio.svg)](https://github.com/padogrid/padogrid/wiki/Platform-Docker) [![Kubernetes](https://github.com/padogrid/padogrid/wiki/images/padogrid-kubernetes.drawio.svg)](https://github.com/padogrid/padogrid/wiki/Platform-Kubernetes)
 
 # Session Expiration Management Plugin
 
@@ -12,7 +12,7 @@ This bundle provides a plugin that expires session objects in a given map and th
 ## Installing Bundle
 
 ```bash
-install_bundle -download bundle-hazelcast-4n5-app-perf_test_session-cluster-session
+install_bundle -download bundle-hazelcast-4n5-cluster-session
 ```
 
 ## Use Case
@@ -47,7 +47,7 @@ Both `SessionExpirationService` and `SessionExpirationService_Get` plugins suppo
 | PARTITION_AWARE | All key classes must implement the `PartitionAware` interface. It uses `PartitionAware.getPartitionKey()` as the session ID. |
 | STRING          | If key type is not defined or any of the other key types fails, then the plugin defaults to the STRING key type. It applies the delimiter to extract the last token in the string value returned from `toString()`. The extracted token is the session ID. The default delimiter is '@'. |
 
-:exclamation: **_The use of the STRING key type in production is strongly discouraged. It is very expensive in terms of speed and CPU due to its use of LIKE predicates for searching the relevant maps._**
+❗️ **_The use of the STRING key type in production is strongly discouraged. It is very expensive in terms of speed and CPU due to its use of LIKE predicates for searching the relevant maps._**
 
 The predicates are built as follows (See source code: [SessionExpirationService.java](clusters/session/src/main/java/org/hazelcast/addon/cluster/expiration/SessionExpirationService.java)):
 
@@ -100,7 +100,7 @@ if (sessionId.length() != 0) {
 }
 ```
 
-:exclamation: Make sure to index your keys to get the optimal predicate query performance. See the examples shown below.
+❗️ Make sure to index your keys to get the optimal predicate query performance. See the examples shown below.
 
 ---
 
@@ -131,7 +131,7 @@ switch_cluster session/bin_sh
 switch_cluster session
 
 # Add two (2) or more members in the cluster
-add_member; add_member
+add_member -count 2
 
 # Start the session cluster and management center
 start_cluster -all
@@ -213,7 +213,7 @@ There are three (3) distinctive settings that must be included in the Hazelcast 
 | hazelcast.addon.cluster.expiration.session.foo%TAG%yong.key.property | Key property. The key class' "get" method that returns the session ID. | N/A |
 | hazelcast.addon.cluster.expiration.session.foo%TAG%yong.key.predicate | Predicate class name. Applies to the CUSTOM key type only. | N/A |
 
-:pencil2: **%TAG%** is a special replacement annotation that makes an exact match of its position in the string value.  Regular expression is supported for listing relevant map names.
+✏️  **%TAG%** is a special replacement annotation that makes an exact match of its position in the string value.  Regular expression is supported for listing relevant map names.
 
 **Example 1:**
 
